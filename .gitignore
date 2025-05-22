@@ -1,0 +1,19 @@
+# Node modules
+**/node_modules/
+
+# Build output
+**/.next/
+**/dist/
+**/build/
+
+# Logs
+*.log
+
+# dotenv files
+*.env
+
+# OS junk
+.DS_Store
+
+# VSCode
+.vscode/
