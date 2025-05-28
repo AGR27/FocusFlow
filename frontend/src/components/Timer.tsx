@@ -35,7 +35,7 @@ export default function Timer() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4 space-y-4">
+    <div className="flex flex-col items-center min-h-screen p-4 space-y-4">
       <h1 className="text-3xl font-bold">Timer</h1>
       <div className="text-6xl font-mono">{formatTime(time)}</div>
       <div className="space-x-4">
