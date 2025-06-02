@@ -5,11 +5,12 @@ import Link from "next/link";
 import Image from "next/image";
 import Timer from "@/components/Timer";
 import MoodGrid from "@/components/PomoTimer/MoodGrid";
+import ProductivitySlider from "@/components/PomoTimer/ProductivitySlider";
 
 export default function Home() {
   return (
-    <div className="min-h-screen flex flex-col bg-blue-500 text-white">
-      <aside className="p-8 bg-blue-700 m-4 rounded-lg shadow-lg flex flex-col items-start">
+    <div className="min-h-screen flex flex-col bg-blue-200 text-white">
+      <main className="p-8 bg-blue-700 m-4 rounded-lg shadow-lg flex flex-col items-start">
         <h1 className="text-6xl font-bold mb-2 font-mono">
           FocusFlow
         </h1>
@@ -22,16 +23,33 @@ export default function Home() {
           <li>Task management</li>
           <li>Progress Tracking</li>
         </ol>
+      </main>
+
+      <aside className="p-8 bg-blue-500 m-4 rounded-lg shadow-lg flex flex-col items-start">
+        <h1 className="text-3xl font-bold mb-2 font-mono">
+          Get Started
+        </h1>
       </aside>
+
+      <nav className="flex justify-center items-center gap-4 p-4 bg-blue-600">
+        <Link
+          className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
+          href="/timer"
+        >
+          <Image
+            className="dark:invert"
+            src="/clock.svg"
+            alt="Clock icon"
+            width={20}
+            height={20}
+          />
+          Start Timer
+        </Link>
+       
+      </nav>
 
       <main className="flex-1 flex items-center justify-center">
         <Timer />
-
-        <MoodGrid
-          onChange={(mood) => {
-            console.log("Mood selected:", mood);
-          }}
-        />
       </main>
 
 
