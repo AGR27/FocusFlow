@@ -88,10 +88,6 @@ export default function MoodGrid({ onChange }: MoodGridProps) {
     ctx.putImageData(imageData, 0, 0);
   }, []);
 
-  useEffect(() => {
-    onChange({ ...position, color });
-  }, [position, color, onChange]);
-
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     e.currentTarget.setPointerCapture(e.pointerId);
     updatePosition(e);
@@ -113,61 +109,66 @@ export default function MoodGrid({ onChange }: MoodGridProps) {
     x = Math.min(1, Math.max(0, x));
     y = Math.min(1, Math.max(0, y));
     setPosition({ x, y });
+
+    const newColor = blendColors(interpolateXColor(x), interpolateYColor(y));
+    onChange({ x, y, color: newColor });
   };
 
     return (
-    <div>
-      <label className="block mb-2 font-semibold">What is your mood right now?</label>
-      <div
-        ref={containerRef}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        style={{
-          position: "relative",
-          width: 300,
-          height: 300,
-          borderRadius: 8,
-          touchAction: "none",
-          userSelect: "none",
-        }}
-      >
-        <canvas
-          ref={canvasRef}
-          width={300}
-          height={300}
-          style={{
-            position: "absolute",
-            inset: 0,
-            borderRadius: 8,
-            zIndex: 0,
-          }}
-        />
-
-        {/* Dot */}
+    <div className="flex flex-col items-center text-s p-4 bg-gray-700 rounded-lg shadow-lg">
+      <label className="block text-2xl font-semibold">What is your mood right now?</label>
+      {/* Mood grid container */}
+      <label className="text-gray-400 m-4 texl-l">Excited</label>
+      <div className="flex flex-row justify-between items-center mt-1 px-1 text-s font-mono text-gray-100">
+        <div className="flex justify-center m-1 flex-1">
+          <label className="text-gray-400 m-4 texl-l">Sad</label>
+        </div>
         <div
+          ref={containerRef}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
           style={{
-            position: "absolute",
-            top: `${position.y * 100}%`,
-            left: `${position.x * 100}%`,
-            transform: "translate(-50%, -50%)",
-            width: 24,
-            height: 24,
-            borderRadius: "50%",
-            border: "3px solid white",
-            backgroundColor: color,
-            boxShadow: `0 0 8px ${color}`,
-            cursor: "pointer",
+            position: "relative",
+            width: 300,
+            height: 300,
+            borderRadius: 8,
+            touchAction: "none",
+            userSelect: "none",
           }}
-        />
+        >
+          <canvas
+            ref={canvasRef}
+            width={300}
+            height={300}
+            style={{
+              position: "absolute",
+              inset: 0,
+              borderRadius: 8,
+              zIndex: 0,
+            }}
+          />
+          {/* Dot */}
+          <div
+            style={{
+              position: "absolute",
+              top: `${position.y * 100}%`,
+              left: `${position.x * 100}%`,
+              transform: "translate(-50%, -50%)",
+              width: 24,
+              height: 24,
+              borderRadius: "50%",
+              border: "3px solid white",
+              backgroundColor: color,
+              boxShadow: `0 0 8px ${color}`,
+              cursor: "pointer",
+            }}
+          />
+        </div>
+        <div className="flex justify-center ml-2 flex-1">
+          <label className="text-gray-400 m-4 texl-l">Happy</label>
+        </div>
       </div>
-      <div className="flex justify-between mt-1 px-1 text-xs font-mono text-gray-100">
-        <span>Sad</span>
-        <span>Happy</span>
-      </div>
-      <div className="flex justify-between mt-2 px-1 text-xs font-mono text-gray-100">
-        <span>Irritated</span>
-        <span>Calm</span>
-      </div>
+      <label className="text-gray-400 m-4 texl-l">Calm</label>
     </div>
   );
 }

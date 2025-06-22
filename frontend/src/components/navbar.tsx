@@ -1,6 +1,16 @@
+"use client";
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 export default function Navbar() {
+  const pathname = usePathname();
+
+  const inactiveNavLink = "text-blue-100 hover:text-white text-xl font-bold transition-all" +
+                          "hover:border-b-2 border-transparent hover:border-white " + 
+                          "hover:scale-105 transform origin-left " +
+                          "inline-flex items-center";
+  const activeNavLink = "text-white text-xl font-bold border-b-2 border-white";
+
   return (
     <nav className="p-4 bg-blue-700 shadow-lg">
       <div className="flex justify-end w-full items-center">
@@ -9,13 +19,13 @@ export default function Navbar() {
             FocusFlow
           </Link>
           <Link
-            className="text-blue-100 hover:text-white text-xl font-bold transition-colors"
+            className={`${inactiveNavLink} ${pathname === "/timer" ? activeNavLink : ''}`}
             href="/timer"
           >
             Pomodoro Timer
           </Link>
           <Link
-            className="text-blue-100 hover:text-white text-xl font-bold transition-colors"
+            className={`${inactiveNavLink} ${pathname === "/tasks" ? activeNavLink : ''}`}
             href="/tasks"
           >
           Tasks

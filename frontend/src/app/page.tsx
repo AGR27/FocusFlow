@@ -1,16 +1,19 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 
 import Image from "next/image";
 import PomoTimer from "@/components/PomoTimer/PomoTimer";
+import MoodGrid from "@/components/PomoTimer/MoodGrid";
+import ProductivitySlider from "@/components/PomoTimer/ProductivitySlider";
 
 export default function Home() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-800 text-gray-600">
       <main className="p-4 bg-white m-20 rounded-lg shadow-lg mx-30 flex flex-col items-start">
-        <h1 className="text-6xl font-bold mb-4 font-mono">
-          Get Started with FocusFlow
+        <h1 className="text-6xl font-bold mb-4 font-sans">
+          Get Started with <span className="font-mono text-blue-600">FocusFlow</span>
         </h1>
         <p className="text-2xl font-bold mb-4 font-sans">
           A productivity assistant to help you stay <span className="text-blue-600 font-semibold">focused</span> and <span className="text-blue-600 font-semibold">organized</span>
@@ -28,8 +31,10 @@ export default function Home() {
         </Link>
       </main>
 
-      <main className="flex-1 flex items-center justify-center">
+      <main className="flex-1 flex-col items-center justify-center">
         <PomoTimer />
+        <MoodGrid onChange={(m) => setMood(m)} /> 
+        <ProductivitySlider onChange={(p) => setProductivity(p)} />
       </main>
 
 

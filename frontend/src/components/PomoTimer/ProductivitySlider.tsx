@@ -19,10 +19,10 @@ export default function ProductivitySlider({
 
   return (
     <div className="flex flex-col items-center space-y-4">
-      <label className="text-lg font-semibold">Productivity Level</label>
+      <label className="text-lg font-semibold">How productive was your focus session?</label>
       <input
         type="range"
-        min="1"
+        min="0"
         max="10"
         value={value}
         onChange={handleChange}
