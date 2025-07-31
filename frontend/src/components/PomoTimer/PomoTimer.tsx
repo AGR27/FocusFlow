@@ -11,14 +11,8 @@ export default function PomoTimer() {
   // --- Session Settings State ---
   // This will store the *parsed* total session duration in minutes (used for calculations)
   const [sessionMinutes, setSessionMinutes] = useState(30); 
-  // This will store the string the user types into the clock display (e.g., "25:00", "05:30").
-  // This is what directly controls the <input>'s value in setup mode.
-  const [displayTimeInput, setDisplayTimeInput] = useState('30:00'); 
-  // State to track if the time input field is currently focused
-  const [isTimeInputFocused, setIsTimeInputFocused] = useState(false);
 
-  // Break time in minutes
-  const [breakMinutes, setBreakMinutes] = useState(5); // Default to 5 minutes
+  const [displayInputString, setDisplayInputString] = useState('');
 
   // Focus time in minutes
   const [focusMinutes, setFocusMinutes] = useState(25);
@@ -34,6 +28,8 @@ export default function PomoTimer() {
 
   // Ref to hold the setInterval ID, allowing us to clear it reliably
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  // Ref for the input element to control cursor position
+  const timeInputRef = useRef<HTMLInputElement>(null);
 
   // --- Derived Durations (in seconds) ---
   // Calculate actual session duration in seconds from the parsed sessionMinutes
@@ -43,25 +39,32 @@ export default function PomoTimer() {
   // Calculate actual break duration in seconds
   const breakDurationSeconds = sessionDurationSeconds - focusDurationSeconds;
 
+  // --- Helper to format total minutes into H:MM:00 (for setup input) ---
+  const formatTimeHMM00 = useCallback((totalMins: number) => {
+    const absMins = Math.max(0, totalMins); 
+    const hours = Math.floor(absMins / 60);
+    const minutes = absMins % 60;
+    // Ensure hours part is not padded with leading zero if it's a single digit
+    const formattedHours = hours.toString();
+    return `${formattedHours}:${minutes.toString().padStart(2, '0')}:00`; 
+  }, []);
 
   // --- Helper to format seconds into MM:SS ---
   // Memoized for performance
-  const formatTime = useCallback((totalSeconds: number) => {
-    const absSeconds = Math.max(0, totalSeconds); // Ensure non-negative display
+  // --- Helper to format seconds into MM:SS (for countdown display) ---
+  const formatTimeMMSS = useCallback((totalSeconds: number) => {
+    const absSeconds = Math.max(0, totalSeconds); 
     const minutes = Math.floor(absSeconds / 60);
     const seconds = absSeconds % 60;
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   }, []);
 
-  // --- Effect to initialize display time and update when sessionMinutes changes ---
-  // This ensures that when we reset or the sessionMinutes changes, the input display updates
+  // --- Effect to adjust focusMinutes when sessionMinutes changes ---
   useEffect(() => {
-    if (mode === "setup" && !isTimeInputFocused) { // Only update if in setup mode and not actively typing
-      setDisplayTimeInput(formatTime(sessionMinutes * 60));
-      setTimeLeft(sessionMinutes * 60); // Keep timeLeft in sync for initial display before start
+    if (mode === "setup") {
+      setFocusMinutes(prevFocus => Math.min(Math.max(0, prevFocus), sessionMinutes));
     }
-  }, [sessionMinutes, mode, formatTime, isTimeInputFocused]);
-
+  }, [sessionMinutes, mode]); 
 
   // --- Main Timer Logic useEffect ---
   useEffect(() => {
@@ -96,11 +99,11 @@ export default function PomoTimer() {
         clearInterval(intervalRef.current);
       }
     };
-  }, [timeLeft, mode, isPaused]); // Dependencies: timeLeft, mode, and isPaused
+  }, [timeLeft, mode, isPaused, breakDurationSeconds]); // Dependencies: timeLeft, mode, and isPaused
 
   useEffect(() => {
   if (mode === "setup") {
-    setTitle("Session Setup"); // Or "Session Time", whatever you prefer
+    setTitle("Session Setup");
   } else if (mode === "focus") {
     setTitle("Focus Time");
   } else if (mode === "break") {
@@ -116,78 +119,88 @@ export default function PomoTimer() {
 
   // --- Handlers for User Interactions ---
 
-  // Handles changes to the main clock display input field (MM:SS format)
+  // Handles changes to the main clock display input field (H:MM:00 format)
   const handleTimeDisplayChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawInput = e.target.value;
-    setDisplayTimeInput(rawInput); // Update what the user sees immediately in the input field
-
-    // --- Intelligent Parsing Logic ---
-    let minutes = 0;
-    let seconds = 0;
-
-    // Remove any non-digit, non-colon characters
-    const cleanedInput = rawInput.replace(/[^0-9:]/g, '');
-
-    // Handle single digit inputs (e.g., "5" means 5 minutes)
-    // Handle "MMSS" format (e.g., "2500" means 25 minutes)
-    // Handle "M:SS" or "MM:SS" format
-    
-    const parts = cleanedInput.split(':');
-    
-    if (parts.length > 2) { // Too many colons, just take first two parts
-        minutes = parseInt(parts[0] || '0', 10);
-        seconds = parseInt(parts[1] || '0', 10);
-    } else if (parts.length === 2) { // MM:SS or M:SS
-        minutes = parseInt(parts[0] || '0', 10);
-        seconds = parseInt(parts[1] || '0', 10);
-    } else if (parts.length === 1) { // Single part
-        const num = parseInt(parts[0] || '0', 10);
-        if (num > 0 && rawInput.length > 2) { // Assume MMSS if more than 2 digits and no colon
-            minutes = Math.floor(num / 100);
-            seconds = num % 100;
-        } else { // Assume it's just minutes if 2 or fewer digits or starts with 0
-            minutes = num;
-        }
-    }
-
-    // Basic validation/normalization: seconds max 59
-    if (seconds > 59) {
-        minutes += Math.floor(seconds / 60);
-        seconds = seconds % 60;
-    }
-
-    // Update the sessionMinutes state for calculations
-    setSessionMinutes(minutes + Math.floor(seconds / 60)); // Only count full minutes for sessionMinutes
+    const rawValue = e.target.value;
+    // Filter out non-numeric characters, but allow the colon for display
+    const filteredValue = rawValue.replace(/[^0-9:]/g, '');
+    setDisplayInputString(filteredValue);
+    // No parsing or state updates for sessionMinutes here!
   };
 
-  // When the input loses focus, format the displayTimeInput to MM:SS
+  // When the input loses focus, ensure the buffer is synced with the current state
   const handleTimeInputBlur = () => {
-    setIsTimeInputFocused(false);
-    setDisplayTimeInput(formatTime(sessionMinutes * 60)); // Ensure proper formatting
-  };
+    let hours = 0;
+    let minutes = 0;
 
-  // When the input gains focus, try to simplify the display for easier typing
-  const handleTimeInputFocus = () => {
-    setIsTimeInputFocused(true);
-    // If the current time is exactly X:00, just show "X" for easier re-typing
-    const currentTotalSeconds = sessionMinutes * 60;
-    if (currentTotalSeconds > 0) {
-      const minutes = Math.floor(currentTotalSeconds / 60);
-      const seconds = currentTotalSeconds % 60;
-      // if (seconds === 0) {
-      //   setDisplayTimeInput(minutes.toString());
-      // } else {
-      //   // Otherwise, show M:SS but allow free typing over it
-        setDisplayTimeInput(`${minutes}:${seconds.toString().padStart(2, '0')}`);
-      // }
+    // Split by colon to get parts
+    const parts = displayInputString.split(':');
+
+    if (parts.length === 1) {
+        // Case: "123" (assume HHMM) or "5" (assume M)
+        const digits = parts[0].replace(/[^0-9]/g, ''); // Ensure only digits
+        if (digits.length === 0) {
+            hours = 0; minutes = 0;
+        } else if (digits.length <= 2) { // "5" -> 0:05, "25" -> 0:25
+            minutes = parseInt(digits, 10);
+        } else if (digits.length === 3) { // "123" -> 1:23
+            hours = parseInt(digits.charAt(0), 10);
+            minutes = parseInt(digits.substring(1, 3), 10);
+        } else { // "1234" or more -> 12:34 (take last 4 digits)
+            hours = parseInt(digits.substring(digits.length - 4, digits.length - 2), 10);
+            minutes = parseInt(digits.substring(digits.length - 2, digits.length), 10);
+        }
+    } else if (parts.length >= 2) {
+        // Case: "H:MM" or "H:" or ":MM" or "H:MM:SS" (take first two parts)
+        hours = parseInt(parts[0].replace(/[^0-9]/g, '') || '0', 10);
+        minutes = parseInt(parts[1].replace(/[^0-9]/g, '') || '0', 10);
     }
+
+    // Normalize minutes (base 60)
+    if (minutes > 59) {
+        hours += Math.floor(minutes / 60);
+        minutes = minutes % 60;
+    }
+    // Cap hours
+    if (hours > 99) hours = 99; // Cap hours at 99 for display simplicity
+
+    const newTotalMinutes = (hours * 60) + minutes;
+    setSessionMinutes(newTotalMinutes); // Update the main sessionMinutes state
+
+    // Update the displayInputString to the normalized H:MM:00 format
+    setDisplayInputString(formatTimeHMM00(newTotalMinutes));
+
+    // Force cursor to the end of minutes after blur
+    requestAnimationFrame(() => {
+      if (timeInputRef.current) {
+        const secondColonIndex = formatTimeHMM00(newTotalMinutes).lastIndexOf(':');
+        timeInputRef.current.setSelectionRange(secondColonIndex, secondColonIndex); 
+      }
+    });
   };
 
-
+  // When the input gains focus, simplify display and set cursor
+  const handleTimeInputFocus = () => {
+    const currentTotalMinutes = sessionMinutes;
+    const hours = Math.floor(currentTotalMinutes / 60);
+    const minutes = currentTotalMinutes % 60;
+    
+    // Set displayInputString to H:MM (without the :00 seconds)
+    setDisplayInputString(`${hours}:${minutes.toString().padStart(2, '0')}`);
+    
+    requestAnimationFrame(() => {
+      if (timeInputRef.current) {
+        // Place cursor at the end of the minutes part (after the MM in H:MM)
+        const formattedHMM = `${hours}:${minutes.toString().padStart(2, '0')}`;
+        timeInputRef.current.setSelectionRange(formattedHMM.length, formattedHMM.length); 
+      }
+    });
+  };
 
   // Handles changes to the "Break Time" slider
-  const handleBreakSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFocusMinutes(Number(e.target.value));
+  const handleFocusSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newFocusMins = Number(e.target.value);
+    setFocusMinutes(newFocusMins);
   };
 
   // Initiates the Pomodoro session
@@ -223,8 +236,8 @@ export default function PomoTimer() {
     setMood(null); // Reset feedback
     setProductivity(5); // Reset feedback
     setSessionMinutes(30); // Reset session minutes to default
-    setDisplayTimeInput('30:00'); // Reset display input to default
-    setBreakMinutes(5); // Reset break percentage to default
+    setFocusMinutes(5); // Reset break percentage to default
+    setDisplayInputString(formatTimeHMM00(30));
   };
 
   // Handles submission after focus questions, transitions to break
@@ -249,9 +262,9 @@ export default function PomoTimer() {
     setTimeLeft(0); // TimeLeft will be reset by duration input in setup
     setMood(null);
     setProductivity(5);
-    setSessionMinutes(25); // Reset session minutes to default
-    setDisplayTimeInput('25:00'); // Reset display input to default
-    setBreakMinutes(5); // Reset break percentage to default
+    setSessionMinutes(30); // Reset session minutes to default
+    setFocusMinutes(5); // Reset break percentage to default
+    setDisplayInputString(formatTimeHMM00(30));
   };
 
   const [title, setTitle] = useState("Pomodoro Timer");
@@ -269,7 +282,7 @@ export default function PomoTimer() {
         {mode === "setup" ? (
           <input
             type="text"
-            value={isTimeInputFocused ? displayTimeInput : formatTime(sessionMinutes * 60)}
+            value={displayInputString}
             onChange={handleTimeDisplayChange}
             onBlur={handleTimeInputBlur}
             onFocus={handleTimeInputFocus}
@@ -277,7 +290,7 @@ export default function PomoTimer() {
             // No maxLength, allowing flexible typing. Parsing logic handles truncation/formatting.
           />
         ) : (
-          <span>{formatTime(timeLeft)}</span> // Displays countdown when active
+          <span>{formatTimeMMSS(timeLeft)}</span> // Displays countdown when active
         )}
         {(mode === "setup" || mode === "focus" || mode === "break") && (
           <span className="text-base text-gray-400 block mt-2">
@@ -292,7 +305,7 @@ export default function PomoTimer() {
           
           <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4">
             <label htmlFor="break-slider" className="text-lg font-medium min-w-[150px] mb-2 sm:mb-0">
-              Focus Time: {formatTime(focusMinutes)}
+              Focus Time: {formatTimeMMSS(focusMinutes)}
             </label>
             <div className="flex-1 flex items-center space-x-4">
               <input
@@ -302,7 +315,7 @@ export default function PomoTimer() {
                 max={sessionMinutes}
                 step="1"
                 value={focusMinutes}
-                onChange={handleBreakSliderChange}
+                onChange={handleFocusSliderChange}
                 style={{
             background: `linear-gradient(to right, 
               rgb(74, 236, 52) 0%,    /* Green for Focus (starts at 0%) */
@@ -314,7 +327,7 @@ export default function PomoTimer() {
                 className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
               />
               <span className="text-blue-300 font-medium">
-                Break Time: {formatTime(breakDurationSeconds)}
+                Break Time: {formatTimeMMSS(breakDurationSeconds)}
               </span>
             </div>
           </div>
