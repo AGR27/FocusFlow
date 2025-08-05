@@ -7,6 +7,7 @@ import Image from "next/image";
 import PomoTimer from "@/components/PomoTimer/PomoTimer";
 import MoodGrid from "@/components/PomoTimer/MoodGrid";
 import ProductivitySlider from "@/components/PomoTimer/ProductivitySlider";
+import BreakSatisfactionSlider from "@/components/PomoTimer/BreakSatisfactionSlider";
 
 export default function Home() {
   return (
@@ -35,6 +36,7 @@ export default function Home() {
         <PomoTimer />
         <MoodGrid onChange={(m) => setMood(m)} /> 
         <ProductivitySlider onChange={(p) => setProductivity(p)} />
+        <BreakSatisfactionSlider onChange={(b) => setBreakSatisfaction(b)} />
       </main>
 
 

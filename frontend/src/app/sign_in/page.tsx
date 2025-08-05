@@ -43,6 +43,25 @@ export default function SignInPage() {
     }
   };
 
+  const handleResetPassword = async () => {
+    if (!email) {
+      setError("Please enter your email to send a password reset link.");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/update_password`
+    });
+
+    if (resetError) {
+      setError(resetError.message);
+    } else {
+      setError('A password reset link has been sent to your email. Please check your inbox!');
+    }
+    setLoading(false);
+  };
+
   // Redirect if user is already logged in
   useEffect(() => {
     if (user) {
@@ -80,12 +99,17 @@ export default function SignInPage() {
     }
     else{
       const { error: signInError } = await signIn(email, password);
-      if(signInError) {
-        setError(signInError.message);
+      let customErrorMessage = "An unexpected error occurred. Please try again.";
+      if(signInError?.message.includes("User not found") || signInError?.message.includes("User does not exist")) {
+        customErrorMessage = "No account found for this email. Please register.";
       }
-      else if(user) {
-        router.push('/timer'); // Redirect to timer page after successful sign-in
+      else if(signInError?.message.includes("Invalid login credentials")) {
+        customErrorMessage = "Incorrect password or no password set for this account.";
       }
+      else {
+        customErrorMessage = signInError ? `Sign-in error: ${signInError.message}` : "Sign-in error occurred.";
+      }
+      setError(customErrorMessage);
     }
     
     setLoading(false); // End loading state 
@@ -169,6 +193,14 @@ export default function SignInPage() {
             disabled={loading}
           >
             {loading ? 'Processing...' : (isRegistering ? 'Sign Up' : 'Sign In')}
+          </button>
+          <button
+            type="button"
+            onClick={handleResetPassword}
+            className="w-full text-center text-sm text-indigo-600 hover:underline transition-colors"
+            disabled={loading}
+          >
+            {loading ? 'Sending Password Reset...' : 'Forgot password?'}
           </button>
         </form>
 

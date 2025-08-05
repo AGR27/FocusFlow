@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef, useCallback } from "react";
+import { supabase } from "@/lib/supabase";
 import ProductivitySlider from "@/components/PomoTimer/ProductivitySlider"; 
 import MoodGrid from "@/components/PomoTimer/MoodGrid"; 
 
@@ -8,10 +9,15 @@ import MoodGrid from "@/components/PomoTimer/MoodGrid";
 type Mode = "setup" | "focus" | "focusQuestions" | "break" | "breakQuestions" | "sessionEnd";
 
 export default function PomoTimer() {
+  const [userId, setUserId] = useState<string | null>(null);
+  const [isSupabaseLoading, setIsSupabaseLoading] = useState<boolean>(true);
+  const [supabaseError, setSupabaseError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+
   // --- Session Settings State ---
   // This will store the *parsed* total session duration in minutes (used for calculations)
   const [sessionMinutes, setSessionMinutes] = useState(30); 
-
   const [displayInputString, setDisplayInputString] = useState('');
 
   // Focus time in minutes
@@ -25,6 +31,8 @@ export default function PomoTimer() {
   // --- Feedback State (for MoodGrid and ProductivitySlider) ---
   const [mood, setMood] = useState<{ x: number; y: number; color: string } | null>(null);
   const [productivity, setProductivity] = useState(5); // Default productivity level for slider
+  const [breakActivity, setBreakActivity] = useState<string | null>(null); // Optional break activity
+  const [breakSatisfaction, setBreakSatisfaction] = useState(0); // Optional break satisfaction rating
 
   // Ref to hold the setInterval ID, allowing us to clear it reliably
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -38,6 +46,8 @@ export default function PomoTimer() {
   const focusDurationSeconds = focusMinutes * 60;
   // Calculate actual break duration in seconds
   const breakDurationSeconds = sessionDurationSeconds - focusDurationSeconds;
+
+  const ratioBreakToFocus = sessionDurationSeconds > 0 ? (breakDurationSeconds / sessionDurationSeconds) : 0;
 
   // --- Helper to format total minutes into H:MM:00 (for setup input) ---
   const formatTimeHMM00 = useCallback((totalMins: number) => {
@@ -57,6 +67,60 @@ export default function PomoTimer() {
     const minutes = Math.floor(absSeconds / 60);
     const seconds = absSeconds % 60;
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  }, []);
+
+  const saveSession = async () => {
+    if (!userId) {
+      setSupabaseError("User ID is not available. Please sign in first.");
+      return;
+    }
+    setIsSaving(true);
+    setSaveMessage(null); // Clear previous messages
+    setSupabaseError(null); // Clear previous errors
+    try {
+      const sessionData = {
+        user_id: userId,
+        session_minutes: sessionMinutes,
+        focus_minutes: focusMinutes,
+        prod_level: productivity, // Note: your state variable is `productivity`, the column is `prod_level`.
+        mood_x: mood?.x || 0,
+        mood_y: mood?.y || 0,
+        break_activity: breakActivity || '',
+        break_satisfaction: breakSatisfaction,
+      };
+      
+      const { error: insertError } = await supabase
+        .from('sessions')
+        .insert(sessionData)
+      
+      if (insertError) {
+        throw new Error(`Error saving session: ${insertError.message}`);
+      }
+      setSaveMessage("Session saved successfully!");
+    }
+    catch (error: any) {
+      console.error("Error saving session:", error);
+      setSupabaseError(error.message || "An unexpected error occurred while saving the session.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // --- Effect to fetch user ID from Supabase ---
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) {
+        setSupabaseError(error.message);
+      }
+      if (session?.user) {
+        setUserId(session.user.id);
+      } else {
+        setSupabaseError("User is not signed in. Please sign in to save sessions.");
+      }
+      setIsSupabaseLoading(false);
+    };
+    fetchUser();
   }, []);
 
   // --- Effect to adjust focusMinutes when sessionMinutes changes ---
@@ -238,6 +302,8 @@ export default function PomoTimer() {
     setSessionMinutes(30); // Reset session minutes to default
     setFocusMinutes(5); // Reset break percentage to default
     setDisplayInputString(formatTimeHMM00(30));
+    setBreakActivity('');
+    setBreakSatisfaction(0); // Reset break satisfaction
   };
 
   // Handles submission after focus questions, transitions to break
@@ -249,11 +315,14 @@ export default function PomoTimer() {
   };
 
   // Handles submission after break questions, transitions to session end
-  const handleSubmitBreakFeedbackAndEndSession = () => {
-    console.log("Break Feedback Submitted (if any)"); // No explicit feedback for break end in UI
-    setMode("sessionEnd"); // Transition to session end
-    setIsPaused(false); // Ensure not paused
-  };
+  const handleSubmitBreakFeedbackAndEndSession = async () => {
+    // This is the last point before the session officially ends.
+    // All feedback data is ready to be saved.
+    console.log("Break Feedback Submitted:", { breakActivity, breakSatisfaction });
+    await saveSession(); // NEW: Call the save function here!
+    setMode("sessionEnd");
+    setIsPaused(false);
+};
 
   // Handles starting a new session from sessionEnd
   const handleNewSession = () => {
@@ -265,6 +334,8 @@ export default function PomoTimer() {
     setSessionMinutes(30); // Reset session minutes to default
     setFocusMinutes(5); // Reset break percentage to default
     setDisplayInputString(formatTimeHMM00(30));
+    setBreakActivity('');
+    setBreakSatisfaction(0); // Reset break satisfaction
   };
 
   const [title, setTitle] = useState("Pomodoro Timer");
@@ -387,17 +458,59 @@ export default function PomoTimer() {
 
       {/* Break Questions Phase */}
       {mode === "breakQuestions" && (
-        <div className="space-y-6 text-center">
-          <h2 className="text-3xl font-bold text-yellow-400">Break Time Ended!</h2>
-          <p className="text-xl">Time to get back to focus!</p>
-          <button
-            onClick={handleSubmitBreakFeedbackAndEndSession}
-            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-500"
-          >
-            End Session
-          </button>
+    <div className="space-y-6 text-center">
+        <h2 className="text-3xl font-bold text-yellow-400">Break Time Ended!</h2>
+        
+        {/* MODIFIED: Add break activity input field and the new slider */}
+        <p className="text-xl">What did you do during your break?</p>
+        <input
+            type="text"
+            value={breakActivity ?? ""}
+            onChange={(e) => setBreakActivity(e.target.value)}
+            placeholder="e.g., Walk, snack, watched a video..."
+            className="w-full bg-gray-800 text-white p-3 rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+
+        {/* NEW: Break Satisfaction Slider */}
+        <div className="pt-4">
+            <p className="text-xl">How did you feel about the break duration?</p>
+            <div className="mt-4 flex flex-col items-center">
+                <span className="text-lg font-medium text-blue-300">
+                    {breakSatisfaction < 0 ? `Shorter by ${Math.abs(breakSatisfaction)} min` : breakSatisfaction > 0 ? `Longer by ${breakSatisfaction} min` : 'Just Right'}
+                </span>
+                <input
+                    type="range"
+                    min="-10"
+                    max="10"
+                    step="1"
+                    value={breakSatisfaction}
+                    onChange={(e) => setBreakSatisfaction(Number(e.target.value))}
+                    className="w-full mt-2 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                    style={{
+                        background: `linear-gradient(to right, 
+                            rgb(255, 69, 0) 0%, 
+                            rgb(255, 69, 0) ${50 + (breakSatisfaction * 2.5)}%,
+                            rgb(74, 236, 52) ${50 + (breakSatisfaction * 2.5)}%,
+                            rgb(74, 236, 52) 100%
+                        )`
+                    }}
+                />
+                <div className="flex justify-between w-full text-sm mt-1 text-gray-400">
+                    <span>-10 (Too Short)</span>
+                    <span>+10 (Too Long)</span>
+                </div>
+            </div>
         </div>
-      )}
+
+        <button
+            onClick={handleSubmitBreakFeedbackAndEndSession}
+            disabled={isSaving}
+            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50"
+        >
+            {isSaving ? 'Saving...' : 'End Session'}
+        </button>
+    </div>
+)}
 
       {/* Session End Phase */}
       {mode === "sessionEnd" && (
