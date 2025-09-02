@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useAuth } from '@/components/AuthContext';
+import Dashboard from "@/components/UI/Dashboard";
 
 import Image from "next/image";
 import PomoTimer from "@/components/PomoTimer/PomoTimer";
@@ -10,28 +12,50 @@ import ProductivitySlider from "@/components/PomoTimer/ProductivitySlider";
 import BreakSatisfactionSlider from "@/components/PomoTimer/BreakSatisfactionSlider";
 
 export default function Home() {
+  const { user, loading } = useAuth(); // Get user and loading state from AuthContext
+
+  if (loading) {
+    // Optionally show a loading spinner or placeholder while auth state is being determined
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-900 text-white text-2xl">
+        Loading user session...
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-800 text-gray-600">
-      <main className="p-4 bg-white m-20 rounded-lg shadow-lg mx-30 flex flex-col items-start">
-        <h1 className="text-6xl font-bold mb-4 font-sans">
-          Get Started with <span className="font-mono text-blue-600">FocusFlow</span>
-        </h1>
-        <p className="text-2xl font-bold mb-4 font-sans">
-          A productivity assistant to help you stay <span className="text-blue-600 font-semibold">focused</span> and <span className="text-blue-600 font-semibold">organized</span>
-        </p>
-        <ol className="list-disc items-inside flex gap-12 ml-8 mb-4 text-lg font-sans">
-          <li>Pomodoro timer</li>
-          <li>Task management</li>
-          <li>Progress Tracking</li>
-        </ol>
-        <Link
-          className="bg-blue-600 text-white px-8 py-4 rounded-full font-semibold text-xl shadow-lg hover:bg-blue-700 transition-colors inline-flex items-center justify-center min-w-[200px]"
-          href="/sign_in"
-        >
-          Create Account
-        </Link>
-      </main>
+      {user ? (
+        <Dashboard />
+      ) : (
+        <main className="p-4 bg-white m-20 rounded-lg shadow-lg mx-30 flex flex-col items-start">
+          <h1 className="text-6xl font-bold mb-4 font-sans">
+            Get Started with <span className="font-mono text-blue-600">FocusFlow</span>
+          </h1>
+          <p className="text-2xl font-bold mb-4 font-sans">
+            A productivity assistant to help you stay <span className="text-blue-600 font-semibold">focused</span> and <span className="text-blue-600 font-semibold">organized</span>
+          </p>
+          <ol className="list-disc items-inside flex gap-12 ml-8 mb-4 text-lg font-sans">
+            <li>Pomodoro timer</li>
+            <li>Task management</li>
+            <li>Progress Tracking</li>
+          </ol>
+          <Link
+            className="bg-blue-600 text-white px-8 py-4 rounded-full font-semibold text-xl shadow-lg hover:bg-blue-700 transition-colors inline-flex items-center justify-center min-w-[200px]"
+            href="/login"
+          >
+            Create Account
+          </Link>
+        </main>
+      )}
+    </div>
+  );
+}
 
+
+
+{/* 
+  
       <main className="flex-1 flex-col items-center justify-center">
         <PomoTimer />
         <MoodGrid onChange={(m) => setMood(m)} /> 
@@ -87,13 +111,12 @@ export default function Home() {
           Go to nextjs.org →
         </a>
       </footer>
-    </div>
-  );
-}
-
-
-
-{/* <div className="flex gap-4 items-center flex-col sm:flex-row">
+  
+  
+  
+  
+  
+  <div className="flex gap-4 items-center flex-col sm:flex-row">
           <a
             className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
             href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"

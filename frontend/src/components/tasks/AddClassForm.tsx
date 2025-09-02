@@ -50,7 +50,7 @@ export default function AddClassForm({ onSave, onCancel, isEditing, classItem }:
   };
 
   return (
-    <div className="bg-gray-800 p-8 rounded-lg shadow-xl w-96">
+    <div className="bg-gray-800 p-8 rounded-lg shadow-xl w-full max-w-md">
       <h3 className="text-2xl font-bold mb-4 text-white">{isEditing ? 'Edit Class' : 'Add New Class'}</h3>
       {error && <div className="bg-red-500 text-white p-3 rounded-md mb-4">{error}</div>}
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -67,7 +67,7 @@ export default function AddClassForm({ onSave, onCancel, isEditing, classItem }:
           />
         </div>
         <div>
-          <label htmlFor="subject" className="block text-gray-300 font-medium mb-1">Subject (e.g., Computer Science)</label>
+          <label htmlFor="subject" className="block text-gray-300 font-medium mb-1">Subject</label>
           <input
             type="text"
             id="subject"
@@ -88,7 +88,7 @@ export default function AddClassForm({ onSave, onCancel, isEditing, classItem }:
           />
         </div>
         <div>
-          <label htmlFor="location" className="block text-gray-300 font-medium mb-1">Location (e.g., Zoom, Building A-302)</label>
+          <label htmlFor="location" className="block text-gray-300 font-medium mb-1">Location</label>
           <input
             type="text"
             id="location"

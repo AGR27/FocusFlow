@@ -16,18 +16,44 @@ export default function AddTaskForm({ onSave, onCancel, classes, isEditing, task
   // Initialize state based on whether we're editing or adding an existing task
   const [taskName, setTaskName] = useState(isEditing && taskItem ? taskItem.name : '');
   const [classId, setClassId] = useState(isEditing && taskItem ? (taskItem.class_id || '') : ''); // Ensure it's a string, default to empty
-  // Format due_date for input type="date". It needs "YYYY-MM-DD"
-  const [dueDate, setDueDate] = useState(
-    (isEditing && taskItem && taskItem.due_date)
-      ? new Date(taskItem.due_date).toISOString().split('T')[0]
-      : ''
-  );
+  // Format due_date_time for input type="date". It needs "YYYY-MM-DD"
+  const [dueDate, setDueDate] = useState(''); // YYYY-MM-DD
+  const [dueTime, setDueTime] = useState(''); // HH:MM
   // NEW STATES for priority and task type
   const [priority, setPriority] = useState<TaskItem['priority']>(isEditing && taskItem ? taskItem.priority : 'medium');
-  const [taskType, setTaskType] = useState<TaskItem['task_type']>(isEditing && taskItem ? taskItem.task_type : 'Assignment');
+  const [taskType, setTaskType] = useState<TaskItem['type']>(isEditing && taskItem ? taskItem.type : 'Assignment');
 
   const [isLoadingForm, setIsLoadingForm] = useState(false); // Renamed to avoid confusion with parent's isLoading
   const [error, setError] = useState<string | null>(null);
+
+  // Effect to update dueDate and dueTime when taskItem changes (for editing)
+  useEffect(() => {
+    if (isEditing && taskItem && taskItem.due_date_time) {
+      try {
+        const dt = new Date(taskItem.due_date_time);
+        
+        // Format date part for input type="date" (YYYY-MM-DD)
+        const year = dt.getFullYear();
+        const month = (dt.getMonth() + 1).toString().padStart(2, '0');
+        const day = dt.getDate().toString().padStart(2, '0');
+        setDueDate(`${year}-${month}-${day}`);
+
+        // Format time part for input type="time" (HH:MM)
+        const hours = dt.getHours().toString().padStart(2, '0');
+        const minutes = dt.getMinutes().toString().padStart(2, '0');
+        setDueTime(`${hours}:${minutes}`);
+      } catch (e) {
+        console.error("Error parsing due_date_time for editing:", e, taskItem.due_date_time);
+        setError("Invalid due date format in existing task. Please re-enter.");
+        setDueDate('');
+        setDueTime('');
+      }
+    } else {
+      // For new tasks or if no due_date_time, ensure fields are empty
+      setDueDate('');
+      setDueTime('');
+    }
+  }, [isEditing, taskItem]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,19 +72,38 @@ export default function AddTaskForm({ onSave, onCancel, classes, isEditing, task
       return;
     }
 
-    // Construct the task data object for saving, including new attributes
-    const taskDataToSave: Omit<TaskItem, 'user_id'> = {
-      id: isEditing && taskItem ? taskItem.id : '', // Pass existing ID if editing, empty string for new
-      name: taskName,
-      class_id: classId,
-      due_date: dueDate || null, // Use null if the date input is empty
-      priority: priority,        // Include priority
-      task_type: taskType,       // Include task type
-    };
+    // --- CRITICAL FIX: Combine date and time into a single ISO string for timestampz ---
+    let fullDueDateISO: string | null = null;
+    if (dueDate) { // If a date has been entered
+      // Create a full date-time string. If no time, default to midnight.
+      const combinedDateTimeString = `${dueDate}${dueTime ? `T${dueTime}:00` : 'T00:00:00'}`;
+      try {
+        // Create a Date object from the combined string.
+        // This will correctly interpret it based on the client's local timezone
+        // and then toISOString() will convert it to UTC for database storage.
+        const dateObj = new Date(combinedDateTimeString);
+        if (isNaN(dateObj.getTime())) { // Check if the date object is invalid
+          throw new Error('Invalid date or time entered.');
+        }
+        fullDueDateISO = dateObj.toISOString(); // This produces the "YYYY-MM-DDTHH:MM:SS.sssZ" format
+      } catch (e: any) {
+        setError(`Date/Time error: ${e.message}. Please enter a valid date and time.`);
+        setIsLoadingForm(false);
+        return;
+      }
+      const taskDataToSave: Omit<TaskItem, 'user_id'> = {
+        id: isEditing && taskItem ? taskItem.id : '', // Pass existing ID if editing, empty string for new
+        name: taskName,
+        class_id: classId,
+        due_date_time: fullDueDateISO, // Use the correctly formatted ISO string for due_date_time
+        priority: priority,
+        type: taskType,
+      };
 
-    // Call the parent's onSave handler
-    onSave(taskDataToSave);
-  };
+      // Call the parent's onSave handler
+      onSave(taskDataToSave);
+    }
+  }; // Pass the complete object
 
   return (
     <div className="bg-gray-800 p-8 rounded-lg shadow-xl w-full max-w-md"> {/* Added w-full max-w-md for better sizing */}
@@ -99,16 +144,28 @@ export default function AddTaskForm({ onSave, onCancel, classes, isEditing, task
           </select>
         </div>
         
-        {/* Due Date Input */}
-        <div>
-          <label htmlFor="dueDate" className="block text-gray-300 font-medium mb-1">Due Date (optional)</label>
-          <input
-            type="date"
-            id="dueDate"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            className="w-full p-3 bg-gray-700 text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+        {/* Due Date & Time Inputs - Now side-by-side using flex */}
+        <div className="flex space-x-2">
+          <div className="flex-1"> {/* Date input */}
+            <label htmlFor="dueDate" className="block text-gray-300 font-medium mb-1">Due Date (optional)</label>
+            <input
+              type="date"
+              id="dueDate"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              className="w-full p-3 bg-gray-700 text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div className="flex-1"> {/* Time input */}
+            <label htmlFor="dueTime" className="block text-gray-300 font-medium mb-1">Time (optional)</label>
+            <input
+              type="time"
+              id="dueTime"
+              value={dueTime}
+              onChange={(e) => setDueTime(e.target.value)}
+              className="w-full p-3 bg-gray-700 text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
         </div>
         
         {/* NEW: Priority Selector */}
@@ -132,7 +189,7 @@ export default function AddTaskForm({ onSave, onCancel, classes, isEditing, task
           <select
             id="taskType"
             value={taskType}
-            onChange={(e) => setTaskType(e.target.value as TaskItem['task_type'])}
+            onChange={(e) => setTaskType(e.target.value as TaskItem['type'])}
             className="w-full p-3 bg-gray-700 text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="Assignment">Assignment</option>

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef, useCallback } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabaseClient";
 import ProductivitySlider from "@/components/PomoTimer/ProductivitySlider"; 
 import MoodGrid from "@/components/PomoTimer/MoodGrid"; 
 
@@ -49,34 +49,16 @@ export default function PomoTimer() {
 
   const ratioBreakToFocus = sessionDurationSeconds > 0 ? (breakDurationSeconds / sessionDurationSeconds) : 0;
 
-  // --- Helper to format total minutes into H:MM:00 (for setup input) ---
-  const formatTimeHMM00 = useCallback((totalMins: number) => {
-    const absMins = Math.max(0, totalMins); 
-    const hours = Math.floor(absMins / 60);
-    const minutes = absMins % 60;
-    // Ensure hours part is not padded with leading zero if it's a single digit
-    const formattedHours = hours.toString();
-    return `${formattedHours}:${minutes.toString().padStart(2, '0')}:00`; 
-  }, []);
-
-  // --- Helper to format seconds into MM:SS ---
-  // Memoized for performance
-  // --- Helper to format seconds into MM:SS (for countdown display) ---
-  const formatTimeMMSS = useCallback((totalSeconds: number) => {
-    const absSeconds = Math.max(0, totalSeconds); 
-    const minutes = Math.floor(absSeconds / 60);
-    const seconds = absSeconds % 60;
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-  }, []);
-
   const saveSession = async () => {
-    if (!userId) {
-      setSupabaseError("User ID is not available. Please sign in first.");
+    if (!userId || !sessionMinutes) {
+      setSupabaseError("User or session data not available. Please ensure you are signed in and the session has a start and end time.");
       return;
     }
+    
     setIsSaving(true);
-    setSaveMessage(null); // Clear previous messages
-    setSupabaseError(null); // Clear previous errors
+    setSaveMessage(null);
+    setSupabaseError(null);
+
     try {
       const sessionData = {
         user_id: userId,
@@ -91,11 +73,12 @@ export default function PomoTimer() {
       
       const { error: insertError } = await supabase
         .from('sessions')
-        .insert(sessionData)
+        .insert(sessionData);
       
       if (insertError) {
         throw new Error(`Error saving session: ${insertError.message}`);
       }
+      
       setSaveMessage("Session saved successfully!");
     }
     catch (error: any) {
@@ -121,6 +104,26 @@ export default function PomoTimer() {
       setIsSupabaseLoading(false);
     };
     fetchUser();
+  }, []);
+
+  // --- Helper to format total minutes into H:MM:00 (for setup input) ---
+  const formatTimeHMM00 = useCallback((totalMins: number) => {
+    const absMins = Math.max(0, totalMins); 
+    const hours = Math.floor(absMins / 60);
+    const minutes = absMins % 60;
+    // Ensure hours part is not padded with leading zero if it's a single digit
+    const formattedHours = hours.toString();
+    return `${formattedHours}:${minutes.toString().padStart(2, '0')}:00`; 
+  }, []);
+
+  // --- Helper to format seconds into MM:SS ---
+  // Memoized for performance
+  // --- Helper to format seconds into MM:SS (for countdown display) ---
+  const formatTimeMMSS = useCallback((totalSeconds: number) => {
+    const absSeconds = Math.max(0, totalSeconds); 
+    const minutes = Math.floor(absSeconds / 60);
+    const seconds = absSeconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   }, []);
 
   // --- Effect to adjust focusMinutes when sessionMinutes changes ---

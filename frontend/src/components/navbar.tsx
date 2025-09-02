@@ -32,6 +32,12 @@ export default function Navbar() {
           >
           Tasks
           </Link>
+          <Link
+            className={`${inactiveNavLink} ${pathname === "/sessions" ? activeNavLink : ''}`}
+            href="/sessions"
+          >
+          Sessions
+          </Link>
         </div>
         
         {loading ? (
@@ -48,7 +54,7 @@ export default function Navbar() {
         ) : (
           <Link
           className="ml-auto rounded-full border border-solid border-transparent transition-colors flex items-center bg-foreground text-background hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-          href="/sign_in"
+          href="/login"
           >
             <span className="text-black">Sign In</span>
           </Link>

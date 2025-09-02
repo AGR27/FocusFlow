@@ -3,7 +3,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabaseClient';
 
 export default function UpdatePassword() {
   const [password, setPassword] = useState('');
@@ -71,7 +71,7 @@ export default function UpdatePassword() {
             {/* Button to navigate back to sign-in */}
             <div className="mt-4 text-center">
                 <button
-                    onClick={() => router.push('/sign_in')}
+                    onClick={() => router.push('/login')}
                     className="bg-indigo-500 text-white px-4 py-2 rounded-lg hover:bg-indigo-600 transition-colors"
                 >
                     Go to Sign In

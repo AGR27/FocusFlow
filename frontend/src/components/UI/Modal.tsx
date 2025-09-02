@@ -13,7 +13,7 @@ const Modal: React.FC<ModalProps> = ({ children, onClose }) => {
   // modal content from bubbling up and accidentally closing the modal.
   return (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4 font-sans"
+      className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-100 p-4 font-sans"
       onClick={onClose}
     >
       <div 
