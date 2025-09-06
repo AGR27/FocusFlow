@@ -15,6 +15,8 @@ if (!CLIENT_ID || !CLIENT_SECRET || !REDIRECT_URI) {
 }
 
 export async function GET(_req: NextRequest) {
+  // Suppress unused parameter warning for Vercel build
+  void _req;
   // Use the new, async createClient() function
   const supabase = await createClient();
 
