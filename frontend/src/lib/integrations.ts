@@ -54,37 +54,37 @@ export const initiateCanvasAuth = () => {
   window.location.href = '/api/canvas/auth';
 };
 
-export const fetchCanvasLmsTasks = async (): Promise<TaskItem[]> => {
-  try {
-    const response = await fetch('/api/canvas/tasks'); // Call your backend API route
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Failed to fetch Canvas tasks.');
-    }
-    const data = await response.json();
-    const canvasLmsTasks = data.tasks || [];
+// export const fetchCanvasLmsTasks = async (): Promise<TaskItem[]> => {
+//   try {
+//     const response = await fetch('/api/canvas/tasks'); // Call your backend API route
+//     if (!response.ok) {
+//       const errorData = await response.json();
+//       throw new Error(errorData.message || 'Failed to fetch Canvas tasks.');
+//     }
+//     const data = await response.json();
+//     const canvasLmsTasks = data.tasks || [];
 
-    // Map Canvas task structure to your TaskItem structure
-    // This is a simplified example; actual mapping will depend on Canvas's API response.
-    const mappedTasks: TaskItem[] = canvasLmsTasks.map((canvasAssignment: unknown) => {
-      const assignment = canvasAssignment as { id: string | number; name: string; due_at?: string; html_url?: string };
-      return {
-        id: assignment.id.toString(), // Canvas IDs can be numbers, ensure string
-        name: assignment.name,
-        // Canvas due_at is already ISO 8601, perfect for timestampz
-        due_date_time: assignment.due_at || null,
-        class_id: null, // You'd need a more complex mapping to link to your internal class_id
-        user_id: '', // Will be filled by your Supabase RLS policies or backend
-        priority: 'medium', // Default priority, or try to infer
-        type: 'Assignment', // Default type, or try to infer
-        source: 'canvas',
-        source_id: assignment.id.toString(),
-        source_url: assignment.html_url,
-      };
-    });
-    return mappedTasks;
-  } catch (error) {
-    console.error('Error fetching Canvas tasks:', error);
-    throw error;
-  }
-};
+//     // Map Canvas task structure to your TaskItem structure
+//     // This is a simplified example; actual mapping will depend on Canvas's API response.
+//     const mappedTasks: TaskItem[] = canvasLmsTasks.map((canvasAssignment: unknown) => {
+//       const assignment = canvasAssignment as { id: string | number; name: string; due_at?: string; html_url?: string };
+//       return {
+//         id: assignment.id.toString(), // Canvas IDs can be numbers, ensure string
+//         name: assignment.name,
+//         // Canvas due_at is already ISO 8601, perfect for timestampz
+//         due_date_time: assignment.due_at || null,
+//         class_id: null, // You'd need a more complex mapping to link to your internal class_id
+//         user_id: '', // Will be filled by your Supabase RLS policies or backend
+//         priority: 'medium', // Default priority, or try to infer
+//         type: 'Assignment', // Default type, or try to infer
+//         source: 'canvas',
+//         source_id: assignment.id.toString(),
+//         source_url: assignment.html_url,
+//       };
+//     });
+//     return mappedTasks;
+//   } catch (error) {
+//     console.error('Error fetching Canvas tasks:', error);
+//     throw error;
+//   }
+// };

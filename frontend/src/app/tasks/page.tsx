@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Edit, Trash, Clock, MapPin} from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { ClassItem, TaskItem } from "@/types"; // Import interfaces
-import { initiateGoogleClassroomAuth, fetchCanvasLmsTasks, initiateCanvasAuth } from '@/lib/integrations';
+import { initiateGoogleClassroomAuth } from '@/lib/integrations';
 
 //import TaskList from '@/components/Tasks/TaskList';
 import AddTaskForm from '@/components/tasks/AddTaskForm';
@@ -116,47 +116,47 @@ export default function Tasks(){
     }
   };
 
-  const handleImportCanvasLmsTasks = async () => {
-    setIsImporting(true);
-    setImportError(null);
-    setImportSuccess(null);
-    try {
-      const importedTasks = await fetchCanvasLmsTasks();
+  // const handleImportCanvasLmsTasks = async () => {
+  //   setIsImporting(true);
+  //   setImportError(null);
+  //   setImportSuccess(null);
+  //   try {
+  //     const importedTasks = await fetchCanvasLmsTasks();
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error("User not authenticated for Supabase. Cannot save imported tasks.");
-      }
+  //     const { data: { user } } = await supabase.auth.getUser();
+  //     if (!user) {
+  //       throw new Error("User not authenticated for Supabase. Cannot save imported tasks.");
+  //     }
 
-      const existingSourceIds = new Set(tasks.filter((t: TaskItem) => t.source && t.source_id).map((t: TaskItem) => t.source_id));
-      const newTasksToInsert = importedTasks.filter((t: TaskItem) => t.source_id && !existingSourceIds.has(t.source_id));
+  //     const existingSourceIds = new Set(tasks.filter((t: TaskItem) => t.source && t.source_id).map((t: TaskItem) => t.source_id));
+  //     const newTasksToInsert = importedTasks.filter((t: TaskItem) => t.source_id && !existingSourceIds.has(t.source_id));
 
-      if (newTasksToInsert.length > 0) {
-        const tasksWithUserId = newTasksToInsert.map(task => ({ ...task, user_id: user.id }));
-        const { error: insertError } = await supabase
-          .from('tasks')
-          .insert(tasksWithUserId);
+  //     if (newTasksToInsert.length > 0) {
+  //       const tasksWithUserId = newTasksToInsert.map(task => ({ ...task, user_id: user.id }));
+  //       const { error: insertError } = await supabase
+  //         .from('tasks')
+  //         .insert(tasksWithUserId);
 
-        if (insertError) throw insertError;
-        setImportSuccess(`Successfully imported ${newTasksToInsert.length} new tasks from Canvas LMS.`);
-        fetchData(); // Re-fetch to display new tasks
-      } else {
-        setImportSuccess('No new tasks found or all tasks already imported from Canvas LMS.');
-      }
+  //       if (insertError) throw insertError;
+  //       setImportSuccess(`Successfully imported ${newTasksToInsert.length} new tasks from Canvas LMS.`);
+  //       fetchData(); // Re-fetch to display new tasks
+  //     } else {
+  //       setImportSuccess('No new tasks found or all tasks already imported from Canvas LMS.');
+  //     }
 
-    } catch (e: unknown) {
-      console.error("Import failed:", e);
-      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
-      if (errorMessage.includes('authentication') || errorMessage.includes('Failed to fetch')) { // Crude check
-        setCurrentModalMessage('Canvas LMS authentication required or expired. Please authorize.');
-        // Optionally: initiateCanvasAuth(); // To trigger the redirect
-      } else {
-        setImportError(`Failed to import Canvas LMS tasks: ${errorMessage}`);
-      }
-    } finally {
-      setIsImporting(false);
-    }
-  };
+  //   } catch (e: unknown) {
+  //     console.error("Import failed:", e);
+  //     const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+  //     if (errorMessage.includes('authentication') || errorMessage.includes('Failed to fetch')) { // Crude check
+  //       setCurrentModalMessage('Canvas LMS authentication required or expired. Please authorize.');
+  //       // Optionally: initiateCanvasAuth(); // To trigger the redirect
+  //     } else {
+  //       setImportError(`Failed to import Canvas LMS tasks: ${errorMessage}`);
+  //     }
+  //   } finally {
+  //     setIsImporting(false);
+  //   }
+  // };
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -474,7 +474,7 @@ export default function Tasks(){
               </button>
 
               <span className="text-gray-400 hidden sm:block">|</span> {/* Separator */}
-
+{/* 
               <button
                 onClick={initiateCanvasAuth}
                 disabled={isImporting}
@@ -488,7 +488,7 @@ export default function Tasks(){
                 className="px-6 py-3 bg-red-500 text-white font-bold rounded-lg shadow-lg hover:bg-red-400 transition-colors transform hover:scale-105 disabled:opacity-50"
               >
                 {isImporting ? 'Importing...' : 'Import from Canvas LMS'}
-              </button>
+              </button> */}
             </div>
             {importError && <p className="text-center text-red-400 mt-4">{importError}</p>}
             {importSuccess && <p className="text-center text-green-400 mt-4">{importSuccess}</p>}
