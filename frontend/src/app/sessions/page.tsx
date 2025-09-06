@@ -20,9 +20,9 @@ const SessionCard: React.FC<{ session: SessionItem }> = ({ session }) => (
   <div className="bg-gray-800 rounded-lg p-4 border border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center">
     <div className="flex-1">
       <p className="text-lg font-semibold text-white">
-        Session on {new Date(session.created_at).toLocaleDateString()}
+        Session on {new Date(session.created_at || '').toLocaleDateString()}
       </p>
-      {session.task && (
+      {/* {session.task && (
         <p className="text-sm text-gray-400 mt-1">
           Task: <span className="text-blue-300 font-medium">{session.task}</span>
         </p>
@@ -31,18 +31,18 @@ const SessionCard: React.FC<{ session: SessionItem }> = ({ session }) => (
         <p className="text-sm text-gray-400">
           Class: <span className="text-purple-300 font-medium">{session.class}</span>
         </p>
-      )}
+      )} */}
     </div>
     <div className="mt-2 sm:mt-0 sm:ml-4 text-right">
       <p className="text-sm text-gray-400">
-        Duration: <span className="text-white font-medium">{session.duration_minutes} min</span>
+        Duration: <span className="text-white font-medium">{session.session_minutes} min</span>
       </p>
       <span
         className={`px-3 py-1 rounded-full text-xs font-semibold mt-2 inline-block ${
-          session.is_productive ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+          session.prod_level >= 7 ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
         }`}
       >
-        {session.is_productive ? 'Productive' : 'Distracted'}
+        {session.prod_level >= 7 ? 'Productive' : 'Distracted'}
       </span>
     </div>
   </div>
@@ -90,11 +90,11 @@ const Sessions: React.FC = () => {
           const recentSessions = sessionData.filter(session => new Date(session.created_at) > oneWeekAgo);
 
           // Calculate total minutes for the last week
-          const weeklyMinutes = recentSessions.reduce((sum, session) => sum + session.duration_minutes, 0);
+          const weeklyMinutes = recentSessions.reduce((sum, session) => sum + session.session_minutes, 0);
           setTotalWeeklyMinutes(weeklyMinutes);
 
           // Calculate productivity percentage
-          const productiveSessions = recentSessions.filter(session => session.is_productive);
+          const productiveSessions = recentSessions.filter(session => session.prod_level >= 7);
           const productivityPercent = recentSessions.length > 0 ? (productiveSessions.length / recentSessions.length) * 100 : 0;
           setProductivityPercentage(Math.round(productivityPercent));
 
@@ -107,7 +107,7 @@ const Sessions: React.FC = () => {
           }
           recentSessions.forEach(session => {
             const dateString = new Date(session.created_at).toDateString();
-            dailyTotals[dateString] = (dailyTotals[dateString] || 0) + session.duration_minutes;
+            dailyTotals[dateString] = (dailyTotals[dateString] || 0) + session.session_minutes;
           });
           const chartData = Object.keys(dailyTotals).map(dateString => ({
             name: new Date(dateString).toLocaleDateString('en-US', { weekday: 'short' }),
@@ -149,8 +149,9 @@ const Sessions: React.FC = () => {
 
         }
 
-      } catch (e: any) {
-        setError(e.message);
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+        setError(errorMessage);
       } finally {
         setIsLoading(false);
       }
@@ -188,7 +189,7 @@ const Sessions: React.FC = () => {
       ) : error ? (
         <p className="text-red-400 text-center">Error: {error}</p>
       ) : sessions.length === 0 ? (
-        <p className="text-gray-400 text-center">You haven't completed any sessions yet. Get to work!</p>
+        <p className="text-gray-400 text-center">You haven&apos;t completed any sessions yet. Get to work!</p>
       ) : (
         <>
           {viewMode === 'weekly' && (

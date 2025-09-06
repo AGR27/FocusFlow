@@ -14,7 +14,7 @@ if (!CLIENT_ID || !CLIENT_SECRET || !REDIRECT_URI) {
   throw new Error('Missing Google Classroom API environment variables for task fetching.');
 }
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   // Use the new, async createClient() function
   const supabase = await createClient();
 
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
 
   try {
     // 1. Retrieve the user's Google Classroom tokens from your Supabase DB
-    let { data: tokenData, error: tokenError } = await supabase
+    const { data: tokenData, error: tokenError } = await supabase
       .from('integration_tokens')
       .select('access_token, refresh_token, expires_at')
       .eq('user_id', user.id)
@@ -99,6 +99,7 @@ export async function GET(req: NextRequest) {
       if (!course.id) continue;
 
       const newClass: ClassItem = {
+        id: '', // Will be set by database
         name: course.name || 'Untitled Class',
         meeting_times: course.section || undefined,
         location: course.room || undefined,
@@ -185,6 +186,7 @@ export async function GET(req: NextRequest) {
             }
 
             const newTask: TaskItem = {
+              id: '', // Will be set by database
               name: work.title,
               due_date_time: fullDueDate,
               class_id: localClassId, // Link to the Supabase class ID!
@@ -249,12 +251,14 @@ export async function GET(req: NextRequest) {
         tasks: successfullyUpsertedTasks 
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching/importing Google Classroom tasks:', error);
     // Return specific status code if re-authentication is likely needed
-    if (error.message.includes('re-connect') || error.response?.status === 401) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorResponse = error as any;
+    if (errorMessage.includes('re-connect') || errorResponse?.response?.status === 401) {
         return NextResponse.json({ message: 'Google Classroom connection error. Please re-authenticate.' }, { status: 401 });
     }
-    return NextResponse.json({ message: error.message || 'Failed to fetch Google Classroom tasks' }, { status: 500 });
+    return NextResponse.json({ message: errorMessage || 'Failed to fetch Google Classroom tasks' }, { status: 500 });
   }
 }

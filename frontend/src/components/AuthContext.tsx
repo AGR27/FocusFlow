@@ -1,5 +1,5 @@
 "use client";
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { User } from "@supabase/supabase-js";
 
@@ -31,7 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const getOrCreateUserProfile = useCallback(async (currentUser: User) => {
+  const getOrCreateUserProfile = async (currentUser: User) => {
     setLoading(true);
     console.log("getOrCreateUserProfile: Starting for user ID:", currentUser.id);
     try {
@@ -90,13 +90,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setUserProfile(updatedProfile as UserProfile); // Set the fetched/updated profile
 
-    } catch (error: any) {
-      console.error("Error fetching or updating profile:", error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error("Error fetching or updating profile:", errorMessage);
       setUserProfile(null); // Clear profile if there's an error
     } finally {
       setLoading(false); // Ensure loading is reset
     }
-  }, []);
+  };
 
   // Effect to listen for Supabase auth state changes
   useEffect(() => {
@@ -164,9 +165,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await getOrCreateUserProfile(data.user);
       }
       return { error };
-    } catch (error: any) {
-      console.error('Sign Up Error:', error.message);
-      return { error };
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Sign Up Error:', errorMessage);
+      return { error: error instanceof Error ? error : new Error(errorMessage) };
     } finally {
       setLoading(false);
     }

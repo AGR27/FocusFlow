@@ -2,7 +2,7 @@
 
 // src/contexts/TimerContext.tsx
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthContext';
 import { supabase } from '@/lib/supabaseClient';
 import { SessionItem, SessionTask, TaskItem } from '@/types';
@@ -209,8 +209,9 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
       if (error) throw error;
 
       setSessionTasks(prev => [...prev, data]);
-    } catch (e: any) {
-      console.error('Error adding task to session:', e.message);
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+      console.error('Error adding task to session:', errorMessage);
     }
   };
 
@@ -227,8 +228,9 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
       if (error) throw error;
 
       setSessionTasks(prev => prev.filter(st => st.task_id !== taskId));
-    } catch (e: any) {
-      console.error('Error removing task from session:', e.message);
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+      console.error('Error removing task from session:', errorMessage);
     }
   };
 
@@ -249,8 +251,9 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
           st.task_id === taskId ? { ...st, task_time: time } : st
         )
       );
-    } catch (e: any) {
-      console.error('Error updating task time:', e.message);
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+      console.error('Error updating task time:', errorMessage);
     }
   };
 
@@ -292,8 +295,9 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
       setSessionTasks([]);
       setShowSessionForm(false);
 
-    } catch (e: any) {
-      console.error('Error saving session:', e.message);
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+      console.error('Error saving session:', errorMessage);
     }
   };
 

@@ -1,5 +1,5 @@
 "use client";
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/components/AuthContext";
@@ -14,13 +14,13 @@ export default function SignInPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter(); // For programmatic navigation
-  const { signIn, signUp, user } = useAuth();
+  const { signIn, user } = useAuth();
 
   const handleOAuthSignIn = async (provider: 'google' | 'github') => {
     setError(null);
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: provider,
         options: {
           // IMPORTANT: Replace with your actual redirect URL after successful OAuth login.
@@ -36,8 +36,9 @@ export default function SignInPage() {
       }
       // If successful, Supabase handles the redirect to the OAuth provider,
       // and then back to your redirectTo URL. No need for manual router.push here.
-    } catch (err: any) {
-      setError(`OAuth Sign-in error: ${err.message}`);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(`OAuth Sign-in error: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -247,7 +248,7 @@ export default function SignInPage() {
             </>
           ) : (
             <>
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <button
                 onClick={() => setIsRegistering(true)}
                 className="text-blue-400 hover:text-blue-300 font-semibold focus:outline-none"

@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { SessionItem } from '@/types';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LabelList } from 'recharts';
 import TaskAnalytics from '@/components/dashboard/TaskAnalytics';
-import { Clock, Target, TrendingUp, Calendar, Plus, Activity } from 'lucide-react';
+import { Clock, Target, TrendingUp, Activity } from 'lucide-react';
 
 // Data format for the bar chart
 interface DailyData {
@@ -31,7 +31,7 @@ const Dashboard: React.FC = () => {
   const [productivityPercentage, setProductivityPercentage] = useState(0);
   const [dailyChartData, setDailyChartData] = useState<DailyData[]>([]);
   const [totalSessions, setTotalSessions] = useState(0);
-  const [avgSessionLength, setAvgSessionLength] = useState(0);
+  // const [avgSessionLength, setAvgSessionLength] = useState(0);
 
   useEffect(() => {
     const fetchAndProcessSessions = async () => {
@@ -92,11 +92,12 @@ const Dashboard: React.FC = () => {
           // Calculate total sessions and average session length
           setTotalSessions(sessionData.length);
           const avgLength = sessionData.reduce((sum, session) => sum + session.session_minutes, 0) / sessionData.length;
-          setAvgSessionLength(Math.round(avgLength));
+          // setAvgSessionLength(Math.round(avgLength));
         }
 
-      } catch (e: any) {
-        setError(e.message);
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+        setError(errorMessage);
       } finally {
         setIsLoading(false);
       }
@@ -210,7 +211,7 @@ const Dashboard: React.FC = () => {
                     <div key={session.id} className="bg-gray-700 rounded-lg p-4 flex justify-between items-center">
                       <div>
                         <p className="text-white font-medium">
-                          Session on {new Date(session.created_at).toLocaleDateString()}
+                          Session on {new Date(session.created_at || '').toLocaleDateString()}
                         </p>
                         <p className="text-sm text-gray-400">
                           {session.session_minutes} min • Productivity: {session.prod_level}/10
@@ -261,7 +262,7 @@ const Dashboard: React.FC = () => {
                       <div key={session.id} className="bg-gray-700 rounded-lg p-4 flex justify-between items-center">
                         <div className="flex-1">
                           <p className="text-lg font-semibold text-white">
-                            Session on {new Date(session.created_at).toLocaleDateString()}
+                            Session on {new Date(session.created_at || '').toLocaleDateString()}
                           </p>
                           <div className="flex items-center gap-4 mt-2 text-sm text-gray-400">
                             <span>Duration: {session.session_minutes} min</span>

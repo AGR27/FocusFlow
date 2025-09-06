@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Home, Plus, Edit, Trash, Clock, MapPin} from 'lucide-react';
+import { Plus, Edit, Trash, Clock, MapPin} from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { ClassItem, TaskItem } from "@/types"; // Import interfaces
-import { fetchGoogleClassroomTasks, initiateGoogleClassroomAuth, fetchCanvasLmsTasks, initiateCanvasAuth } from '@/lib/integrations';
+import { initiateGoogleClassroomAuth, fetchCanvasLmsTasks, initiateCanvasAuth } from '@/lib/integrations';
 
 //import TaskList from '@/components/Tasks/TaskList';
 import AddTaskForm from '@/components/tasks/AddTaskForm';
@@ -107,9 +107,10 @@ export default function Tasks(){
       setImportSuccess(data.message || `Successfully imported ${data.importedCount || 0} tasks from Google Classroom.`);
       fetchData(); // Refresh local data to show newly imported tasks
 
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Import failed:", e);
-      setImportError(`Failed to import Google Classroom tasks: ${e.message}`);
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+      setImportError(`Failed to import Google Classroom tasks: ${errorMessage}`);
     } finally {
       setIsImporting(false);
     }
@@ -127,8 +128,8 @@ export default function Tasks(){
         throw new Error("User not authenticated for Supabase. Cannot save imported tasks.");
       }
 
-      const existingSourceIds = new Set(tasks.filter(t => t.source && t.source_id).map(t => t.source_id));
-      const newTasksToInsert = importedTasks.filter(t => t.source_id && !existingSourceIds.has(t.source_id));
+      const existingSourceIds = new Set(tasks.filter((t: TaskItem) => t.source && t.source_id).map((t: TaskItem) => t.source_id));
+      const newTasksToInsert = importedTasks.filter((t: TaskItem) => t.source_id && !existingSourceIds.has(t.source_id));
 
       if (newTasksToInsert.length > 0) {
         const tasksWithUserId = newTasksToInsert.map(task => ({ ...task, user_id: user.id }));
@@ -143,13 +144,14 @@ export default function Tasks(){
         setImportSuccess('No new tasks found or all tasks already imported from Canvas LMS.');
       }
 
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Import failed:", e);
-      if (e.message.includes('authentication') || e.message.includes('Failed to fetch')) { // Crude check
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+      if (errorMessage.includes('authentication') || errorMessage.includes('Failed to fetch')) { // Crude check
         setCurrentModalMessage('Canvas LMS authentication required or expired. Please authorize.');
         // Optionally: initiateCanvasAuth(); // To trigger the redirect
       } else {
-        setImportError(`Failed to import Canvas LMS tasks: ${e.message}`);
+        setImportError(`Failed to import Canvas LMS tasks: ${errorMessage}`);
       }
     } finally {
       setIsImporting(false);
@@ -181,8 +183,9 @@ export default function Tasks(){
     console.log("Fetched Classes:", classData);
     console.log("Fetched Tasks:", taskData);
     // --- END LOGGING ---
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -263,8 +266,9 @@ export default function Tasks(){
       if (view === classId) {
         setView('home');
       }
-    } catch (e: any) {
-      setCurrentModalMessage(`Error deleting class: ${e.message}`);
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+      setCurrentModalMessage(`Error deleting class: ${errorMessage}`);
     }
   };
 
@@ -312,8 +316,9 @@ export default function Tasks(){
       setShowAddClassForm(false); // Close the modal
       setEditingClass(null); // Clear any editing state
       fetchData(); // Re-fetch all data to update the UI
-    } catch (e: any) {
-      setCurrentModalMessage(`Error saving class: ${e.message}`);
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+      setCurrentModalMessage(`Error saving class: ${errorMessage}`);
     }
   };
 
@@ -342,8 +347,9 @@ export default function Tasks(){
 
       setCurrentModalMessage('Task deleted successfully!');
       fetchData(); // Re-fetch all data to update the UI
-    } catch (e: any) {
-      setCurrentModalMessage(`Error deleting task: ${e.message}`);
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+      setCurrentModalMessage(`Error deleting task: ${errorMessage}`);
     }
   };
 
@@ -395,8 +401,9 @@ export default function Tasks(){
       setShowAddTaskForm(false); // Close the task modal
       setEditingTask(null); // Clear any task being edited state
       fetchData(); // Re-fetch all data to update the UI
-    } catch (e: any) {
-      setCurrentModalMessage(`Error saving task: ${e.message}`);
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+      setCurrentModalMessage(`Error saving task: ${errorMessage}`);
     }
   };
 
@@ -542,7 +549,7 @@ export default function Tasks(){
 
                       {classes.length === 0 && miscTasks.length === 0 && (
                         <div className="col-span-full text-center text-gray-500 mt-12">
-                          <p>No classes or tasks yet. Click "Add New" in the sidebar to get started!</p>
+                          <p>No classes or tasks yet. Click &quot;Add New&quot; in the sidebar to get started!</p>
                         </div>
                       )}
                     </div>

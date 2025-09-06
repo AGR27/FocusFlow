@@ -90,9 +90,10 @@ export async function GET(request: NextRequest) {
       // Redirect to a success page or your main tasks dashboard
       return NextResponse.redirect(new URL('/tasks?success=' + encodeURIComponent('Google Classroom connected successfully!'), request.url));
 
-    } catch (err: any) {
-      console.error('Error exchanging Google Classroom code:', err.message);
-      return NextResponse.redirect(new URL('/tasks?error=' + encodeURIComponent('Google Classroom connection failed: ' + err.message), request.url));
+    } catch (err: unknown) {
+      console.error('Error exchanging Google Classroom code:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      return NextResponse.redirect(new URL('/tasks?error=' + encodeURIComponent('Google Classroom connection failed: ' + errorMessage), request.url));
     }
   }
 

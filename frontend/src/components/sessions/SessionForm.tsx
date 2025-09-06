@@ -1,8 +1,8 @@
 // src/components/sessions/SessionForm.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { SessionItem, SessionTask } from '@/types';
-import { supabase } from '@/lib/supabaseClient';
+// import { supabase } from '@/lib/supabaseClient';
 import { Clock, Target, Activity, Coffee, Smile } from 'lucide-react';
 import SessionTaskAssociation from './SessionTaskAssociation';
 
@@ -51,8 +51,9 @@ const SessionForm: React.FC<SessionFormProps> = ({
       };
 
       onSave(sessionData);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

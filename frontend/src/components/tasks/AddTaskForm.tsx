@@ -86,8 +86,9 @@ export default function AddTaskForm({ onSave, onCancel, classes, isEditing, task
           throw new Error('Invalid date or time entered.');
         }
         fullDueDateISO = dateObj.toISOString(); // This produces the "YYYY-MM-DDTHH:MM:SS.sssZ" format
-      } catch (e: any) {
-        setError(`Date/Time error: ${e.message}. Please enter a valid date and time.`);
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+        setError(`Date/Time error: ${errorMessage}. Please enter a valid date and time.`);
         setIsLoadingForm(false);
         return;
       }
@@ -139,7 +140,7 @@ export default function AddTaskForm({ onSave, onCancel, classes, isEditing, task
             <option value="" disabled>Select a class</option>
             {/* Ensure 'classes' prop is available and mapped */}
             {classes.map((cls) => (
-              <option key={cls.id} value={cls.id}>{cls.name}</option>
+              <option key={cls.id} value={cls.id || ''}>{cls.name}</option>
             ))}
           </select>
         </div>

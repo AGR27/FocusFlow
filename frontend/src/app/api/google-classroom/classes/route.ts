@@ -4,7 +4,7 @@ import { google, classroom_v1, } from 'googleapis';
 import { GaxiosResponse } from 'gaxios';
 // NEW: Import the correct, updated server client creator
 import { createClient } from '@/utils/supabase/server'; 
-import type { ClassItem } from '@/types'; // Ensure your ClassItem type is imported
+// import type { ClassItem } from '@/types'; // Ensure your ClassItem type is imported
 
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
@@ -14,7 +14,7 @@ if (!CLIENT_ID || !CLIENT_SECRET || !REDIRECT_URI) {
   throw new Error('Missing Google Classroom API environment variables for task fetching.');
 }
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   // Use the new, async createClient() function
   const supabase = await createClient();
 
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
 
   try {
     // 1. Retrieve the user's Google Classroom tokens from your Supabase DB
-    let { data: tokenData, error: tokenError } = await supabase
+    const { data: tokenData, error: tokenError } = await supabase
       .from('integration_tokens')
       .select('access_token, refresh_token, expires_at')
       .eq('user_id', user.id)
@@ -74,10 +74,10 @@ export async function GET(req: NextRequest) {
     // 4. Use Google Classroom API client
     const classroom = google.classroom({ version: 'v1', auth: oauth2Client });
 
-    let allCourses: any[] = [];
+    let allCourses: classroom_v1.Schema$Course[] = [];
     let pageToken: string | undefined = undefined;
 
-    type ClassListResponse = Awaited<ReturnType<typeof classroom['courses']['list']>>;
+    // type ClassListResponse = Awaited<ReturnType<typeof classroom['courses']['list']>>;
 
     do {
       const classList = await classroom.courses.list({
@@ -149,9 +149,10 @@ export async function GET(req: NextRequest) {
       importedClasses: classesToUpsert.filter(Boolean), // Filter out any null/undefined from failed upserts
     }, { status: 200 });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error importing Google Classroom classes:', error);
-    return NextResponse.json({ error: 'Failed to import Google Classroom classes: ' + error.message }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ error: 'Failed to import Google Classroom classes: ' + errorMessage }, { status: 500 });
   }
 }
 

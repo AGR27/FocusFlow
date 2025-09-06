@@ -70,9 +70,10 @@ const TaskAnalytics: React.FC<TaskAnalyticsProps> = ({ userId, timeRange }) => {
         // Process task time data
         const taskMap = new Map<string, TaskTimeData>();
         
-        sessionTasks?.forEach((st: any) => {
-          const taskId = st.task_id;
-          const task = st.task;
+        sessionTasks?.forEach((st: unknown) => {
+          const stData = st as any;
+          const taskId = stData.task_id;
+          const task = stData.task;
           
           if (!taskMap.has(taskId)) {
             taskMap.set(taskId, {
@@ -86,7 +87,7 @@ const TaskAnalytics: React.FC<TaskAnalyticsProps> = ({ userId, timeRange }) => {
           }
           
           const taskData = taskMap.get(taskId)!;
-          taskData.timeSpent += st.task_time || 0;
+          taskData.timeSpent += stData.task_time || 0;
           taskData.sessions += 1;
         });
 
@@ -101,8 +102,9 @@ const TaskAnalytics: React.FC<TaskAnalyticsProps> = ({ userId, timeRange }) => {
         // Process daily data
         const dailyMap = new Map<string, DailyTimeData>();
         
-        sessionTasks?.forEach((st: any) => {
-          const date = new Date(st.session.created_at).toDateString();
+        sessionTasks?.forEach((st: unknown) => {
+          const stData = st as any;
+          const date = new Date(stData.session.created_at).toDateString();
           
           if (!dailyMap.has(date)) {
             dailyMap.set(date, {
@@ -114,7 +116,7 @@ const TaskAnalytics: React.FC<TaskAnalyticsProps> = ({ userId, timeRange }) => {
           }
           
           const dailyData = dailyMap.get(date)!;
-          dailyData.timeSpent += st.task_time || 0;
+          dailyData.timeSpent += stData.task_time || 0;
           dailyData.tasksCompleted += 1;
         });
 

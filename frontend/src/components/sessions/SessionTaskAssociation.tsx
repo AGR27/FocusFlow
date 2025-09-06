@@ -53,8 +53,9 @@ const SessionTaskAssociation: React.FC<SessionTaskAssociationProps> = ({
 
         setAvailableTasks(tasks || []);
         setSelectedTasks(sessionTasks || []);
-      } catch (e: any) {
-        setError(e.message);
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+        setError(errorMessage);
       } finally {
         setIsLoading(false);
       }
@@ -82,8 +83,9 @@ const SessionTaskAssociation: React.FC<SessionTaskAssociationProps> = ({
       if (error) throw error;
 
       setSelectedTasks(prev => [...prev, data]);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+      setError(errorMessage);
     }
   };
 
@@ -98,8 +100,9 @@ const SessionTaskAssociation: React.FC<SessionTaskAssociationProps> = ({
       if (error) throw error;
 
       setSelectedTasks(prev => prev.filter(st => st.id !== sessionTaskId));
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+      setError(errorMessage);
     }
   };
 
@@ -121,8 +124,9 @@ const SessionTaskAssociation: React.FC<SessionTaskAssociationProps> = ({
 
       // Notify parent component
       onTaskTimeUpdate(selectedTasks);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+      setError(errorMessage);
     }
   };
 
@@ -169,9 +173,9 @@ const SessionTaskAssociation: React.FC<SessionTaskAssociationProps> = ({
                 <div className="flex-1">
                   <p className="text-white font-medium">{task.name}</p>
                   <p className="text-sm text-gray-400">{task.type}</p>
-                  {task.time_goal && (
+                  {/* {task.time_goal && (
                     <p className="text-xs text-blue-400">Goal: {task.time_goal} min</p>
-                  )}
+                  )} */}
                 </div>
                 <button
                   onClick={() => addTaskToSession(task)}
@@ -196,9 +200,9 @@ const SessionTaskAssociation: React.FC<SessionTaskAssociationProps> = ({
                   <div className="flex-1">
                     <p className="text-white font-medium">{sessionTask.task?.name}</p>
                     <p className="text-sm text-gray-400">{sessionTask.task?.type}</p>
-                    {sessionTask.task?.time_goal && (
+                    {/* {sessionTask.task?.time_goal && (
                       <p className="text-xs text-blue-400">Goal: {sessionTask.task.time_goal} min</p>
-                    )}
+                    )} */}
                   </div>
                   <button
                     onClick={() => removeTaskFromSession(sessionTask.id)}

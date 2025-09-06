@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 
 interface BreakSatisfactionSliderProps {
   onChange: (value: number) => void;

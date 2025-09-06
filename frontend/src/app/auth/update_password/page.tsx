@@ -49,7 +49,7 @@ export default function UpdatePassword() {
           setPassword(''); // Clear input fields
           setConfirmPassword(''); // Clear input fields
         }
-    } catch (err) {
+    } catch (_err) {
         // Catch any unexpected JavaScript errors
         setError('An unexpected error occurred. Please try a different password or try again.');
     } finally {

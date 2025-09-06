@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { ClassItem } from "@/types"; // Import interfaces
 
 interface AddClassFormProps {

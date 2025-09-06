@@ -10,10 +10,10 @@ type Mode = "setup" | "focus" | "focusQuestions" | "break" | "breakQuestions" | 
 
 export default function PomoTimer() {
   const [userId, setUserId] = useState<string | null>(null);
-  const [isSupabaseLoading, setIsSupabaseLoading] = useState<boolean>(true);
-  const [supabaseError, setSupabaseError] = useState<string | null>(null);
+  // const [isSupabaseLoading, setIsSupabaseLoading] = useState<boolean>(true);
+  // const [supabaseError, setSupabaseError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState<boolean>(false);
-  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  // const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
   // --- Session Settings State ---
   // This will store the *parsed* total session duration in minutes (used for calculations)
@@ -47,17 +47,15 @@ export default function PomoTimer() {
   // Calculate actual break duration in seconds
   const breakDurationSeconds = sessionDurationSeconds - focusDurationSeconds;
 
-  const ratioBreakToFocus = sessionDurationSeconds > 0 ? (breakDurationSeconds / sessionDurationSeconds) : 0;
+  // const ratioBreakToFocus = sessionDurationSeconds > 0 ? (breakDurationSeconds / sessionDurationSeconds) : 0;
 
   const saveSession = async () => {
     if (!userId || !sessionMinutes) {
-      setSupabaseError("User or session data not available. Please ensure you are signed in and the session has a start and end time.");
+      console.error("User or session data not available. Please ensure you are signed in and the session has a start and end time.");
       return;
     }
     
     setIsSaving(true);
-    setSaveMessage(null);
-    setSupabaseError(null);
 
     try {
       const sessionData = {
@@ -79,11 +77,10 @@ export default function PomoTimer() {
         throw new Error(`Error saving session: ${insertError.message}`);
       }
       
-      setSaveMessage("Session saved successfully!");
+      console.log("Session saved successfully!");
     }
-    catch (error: any) {
+    catch (error: unknown) {
       console.error("Error saving session:", error);
-      setSupabaseError(error.message || "An unexpected error occurred while saving the session.");
     } finally {
       setIsSaving(false);
     }
@@ -94,14 +91,13 @@ export default function PomoTimer() {
     const fetchUser = async () => {
       const { data: { session }, error } = await supabase.auth.getSession();
       if (error) {
-        setSupabaseError(error.message);
+        console.error("Supabase error:", error.message);
       }
       if (session?.user) {
         setUserId(session.user.id);
       } else {
-        setSupabaseError("User is not signed in. Please sign in to save sessions.");
+        console.error("User is not signed in. Please sign in to save sessions.");
       }
-      setIsSupabaseLoading(false);
     };
     fetchUser();
   }, []);

@@ -91,9 +91,10 @@ export async function GET(request: NextRequest) {
       // Redirect to a success page or your main tasks dashboard
       return NextResponse.redirect(new URL('/tasks?success=' + encodeURIComponent('Canvas LMS connected successfully!'), request.url));
 
-    } catch (err: any) {
-      console.error('Error in Canvas OAuth callback:', err.message);
-      return NextResponse.redirect(new URL('/tasks?error=' + encodeURIComponent('Canvas LMS connection failed: ' + err.message), request.url));
+    } catch (err: unknown) {
+      console.error('Error in Canvas OAuth callback:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      return NextResponse.redirect(new URL('/tasks?error=' + encodeURIComponent('Canvas LMS connection failed: ' + errorMessage), request.url));
     }
   }
 
@@ -115,9 +116,9 @@ export async function GET(request: NextRequest) {
 
   // Generate the Canvas authorization URL
   const authUrl = `${CANVAS_BASE_URL}/login/oauth2/auth?` + new URLSearchParams({
-    client_id: CANVAS_CLIENT_ID,
+    client_id: CANVAS_CLIENT_ID!,
     response_type: 'code',
-    redirect_uri: CANVAS_REDIRECT_URI,
+    redirect_uri: CANVAS_REDIRECT_URI!,
     scope: CANVAS_SCOPES,
     state: user.id, 
   }).toString();

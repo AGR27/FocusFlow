@@ -1,15 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+// import { useState } from "react";
 import { useAuth } from '@/components/AuthContext';
 import Dashboard from "@/components/UI/Dashboard";
 
-import Image from "next/image";
-import PomoTimer from "@/components/PomoTimer/PomoTimer";
-import MoodGrid from "@/components/PomoTimer/MoodGrid";
-import ProductivitySlider from "@/components/PomoTimer/ProductivitySlider";
-import BreakSatisfactionSlider from "@/components/PomoTimer/BreakSatisfactionSlider";
+// import Image from "next/image";
+// import PomoTimer from "@/components/PomoTimer/PomoTimer";
+// import MoodGrid from "@/components/PomoTimer/MoodGrid";
+// import ProductivitySlider from "@/components/PomoTimer/ProductivitySlider";
+// import BreakSatisfactionSlider from "@/components/PomoTimer/BreakSatisfactionSlider";
 
 export default function Home() {
   const { user, loading } = useAuth(); // Get user and loading state from AuthContext

@@ -22,18 +22,21 @@ export const fetchGoogleClassroomTasks = async (): Promise<TaskItem[]> => {
     
     // Map Google Classroom task structure to your TaskItem structure
     // This is a simplified example; actual mapping will depend on Google's API response.
-    const mappedTasks: TaskItem[] = googleClassroomTasks.map((gcTask: any) => ({
-      id: crypto.randomUUID(), // Google's assignment ID
-      name: gcTask.name,
-      due_date_time: gcTask.dueDate ? new Date(gcTask.dueDate.year, gcTask.dueDate.month - 1, gcTask.dueDate.day).toISOString() : null,
-      class_id: null, // You'd need a more complex mapping to link to your internal class_id
-      user_id: '', // Will be filled by your Supabase RLS policies or backend
-      priority: 'medium', // Default priority, or try to infer from GC data
-      type: 'Assignment', // Default type, or try to infer
-      source: 'google-classroom',
-      source_id: gcTask.id,
-      source_url: gcTask.alternateLink,
-    }));
+    const mappedTasks: TaskItem[] = googleClassroomTasks.map((gcTask: unknown) => {
+      const task = gcTask as any;
+      return {
+        id: crypto.randomUUID(), // Google's assignment ID
+        name: task.name,
+        due_date_time: task.dueDate ? new Date(task.dueDate.year, task.dueDate.month - 1, task.dueDate.day).toISOString() : null,
+        class_id: null, // You'd need a more complex mapping to link to your internal class_id
+        user_id: '', // Will be filled by your Supabase RLS policies or backend
+        priority: 'medium', // Default priority, or try to infer from GC data
+        type: 'Assignment', // Default type, or try to infer
+        source: 'google-classroom',
+        source_id: task.id,
+        source_url: task.alternateLink,
+      };
+    });
     return mappedTasks;
   } catch (error) {
     console.error('Error fetching Google Classroom tasks:', error);
@@ -62,19 +65,22 @@ export const fetchCanvasLmsTasks = async (): Promise<TaskItem[]> => {
 
     // Map Canvas task structure to your TaskItem structure
     // This is a simplified example; actual mapping will depend on Canvas's API response.
-    const mappedTasks: TaskItem[] = canvasLmsTasks.map((canvasAssignment: any) => ({
-      id: canvasAssignment.id.toString(), // Canvas IDs can be numbers, ensure string
-      name: canvasAssignment.name,
-      // Canvas due_at is already ISO 8601, perfect for timestampz
-      due_date_time: canvasAssignment.due_at || null,
-      class_id: null, // You'd need a more complex mapping to link to your internal class_id
-      user_id: '', // Will be filled by your Supabase RLS policies or backend
-      priority: 'medium', // Default priority, or try to infer
-      type: 'Assignment', // Default type, or try to infer
-      source: 'canvas',
-      source_id: canvasAssignment.id.toString(),
-      source_url: canvasAssignment.html_url,
-    }));
+    const mappedTasks: TaskItem[] = canvasLmsTasks.map((canvasAssignment: unknown) => {
+      const assignment = canvasAssignment as any;
+      return {
+        id: assignment.id.toString(), // Canvas IDs can be numbers, ensure string
+        name: assignment.name,
+        // Canvas due_at is already ISO 8601, perfect for timestampz
+        due_date_time: assignment.due_at || null,
+        class_id: null, // You'd need a more complex mapping to link to your internal class_id
+        user_id: '', // Will be filled by your Supabase RLS policies or backend
+        priority: 'medium', // Default priority, or try to infer
+        type: 'Assignment', // Default type, or try to infer
+        source: 'canvas',
+        source_id: assignment.id.toString(),
+        source_url: assignment.html_url,
+      };
+    });
     return mappedTasks;
   } catch (error) {
     console.error('Error fetching Canvas tasks:', error);

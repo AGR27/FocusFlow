@@ -18,13 +18,13 @@ export default function Timer() {
     return () => clearInterval(interval);
   }, [isRunning]);
 
-  const toggleTimer = () => {
-    setIsRunning((prev) => !prev);
-  }
-  const resetTimer = () => {
-    setTime(0);
-    setIsRunning(false);
-  };
+  // const toggleTimer = () => {
+  //   setIsRunning((prev) => !prev);
+  // }
+  // const resetTimer = () => {
+  //   setTime(0);
+  //   setIsRunning(false);
+  // };
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)

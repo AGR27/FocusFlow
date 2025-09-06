@@ -20,7 +20,7 @@ export async function updateSession(request: NextRequest) {
         // When Supabase needs to set a cookie (e.g., after token refresh),
         // it calls setAll. We update both the request and the response cookies.
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           
           // Recreate the response object with the updated request,
           // then set cookies on this response to send them back to the client.

@@ -1,7 +1,7 @@
 // src/components/Tasks/TaskCard.tsx
 
 import React from "react";
-import { Edit, Trash2, CalendarDays, AlertTriangle, Tag } from 'lucide-react'; // Importing icons
+import { Edit, Trash2, CalendarDays } from 'lucide-react'; // Importing icons
 import { TaskItem } from "@/types"; // Importing TaskItem interface
 
 // Define the props for the TaskCard component
@@ -64,7 +64,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete }) => {
           <Edit size={18} className="mr-1" /> Edit
         </button>
         <button
-          onClick={() => onDelete(task.id)}
+          onClick={() => onDelete(task.id || '')}
           className="text-red-400 hover:text-red-300 transition-colors p-2 rounded-md hover:bg-gray-700 flex items-center"
           title="Delete Task"
         >

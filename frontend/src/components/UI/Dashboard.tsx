@@ -13,7 +13,7 @@ import { ClassItem, TaskItem } from "@/types";
 const Dashboard: React.FC = () => {
   const { user, loading: authLoading } = useAuth(); // Get user and loading state from AuthContext
   const [tasks, setTasks] = useState<TaskItem[]>([]);
-  const [classes, setClasses] = useState<ClassItem[]>([]); // Added for potential future use or context
+  // const [classes, setClasses] = useState<ClassItem[]>([]); // Added for potential future use or context
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentModalMessage, setCurrentModalMessage] = useState<string | null>(null); // For custom modals
@@ -40,7 +40,7 @@ const Dashboard: React.FC = () => {
           .eq('user_id', user.id); // Filter by the current user's ID
 
         if (classError) throw classError;
-        setClasses(classData || []); // Store classes if needed for future features
+        // setClasses(classData || []); // Store classes if needed for future features
 
         // Fetch tasks associated with the current user, ordered by due date_time
         const { data: taskData, error: taskError } = await supabase
@@ -52,8 +52,9 @@ const Dashboard: React.FC = () => {
         if (taskError) throw taskError;
 
         setTasks(taskData || []);
-      } catch (e: any) {
-        setError(e.message);
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+        setError(errorMessage);
       } finally {
         setIsLoading(false);
       }
