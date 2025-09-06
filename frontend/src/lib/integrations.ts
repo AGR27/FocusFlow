@@ -23,6 +23,7 @@ export const fetchGoogleClassroomTasks = async (): Promise<TaskItem[]> => {
     // Map Google Classroom task structure to your TaskItem structure
     // This is a simplified example; actual mapping will depend on Google's API response.
     const mappedTasks: TaskItem[] = googleClassroomTasks.map((gcTask: unknown) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const task = gcTask as any;
       return {
         id: crypto.randomUUID(), // Google's assignment ID
