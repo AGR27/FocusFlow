@@ -50,6 +50,8 @@ export default function UpdatePassword() {
           setConfirmPassword(''); // Clear input fields
         }
     } catch (_err) {
+        // Suppress unused parameter warning for Vercel build
+        void _err;
         // Catch any unexpected JavaScript errors
         setError('An unexpected error occurred. Please try a different password or try again.');
     } finally {

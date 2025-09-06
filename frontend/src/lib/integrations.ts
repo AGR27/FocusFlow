@@ -66,7 +66,7 @@ export const fetchCanvasLmsTasks = async (): Promise<TaskItem[]> => {
     // Map Canvas task structure to your TaskItem structure
     // This is a simplified example; actual mapping will depend on Canvas's API response.
     const mappedTasks: TaskItem[] = canvasLmsTasks.map((canvasAssignment: unknown) => {
-      const assignment = canvasAssignment as any;
+      const assignment = canvasAssignment as { id: string | number; name: string; due_at?: string; html_url?: string };
       return {
         id: assignment.id.toString(), // Canvas IDs can be numbers, ensure string
         name: assignment.name,

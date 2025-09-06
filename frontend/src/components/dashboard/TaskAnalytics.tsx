@@ -1,10 +1,9 @@
 // src/components/dashboard/TaskAnalytics.tsx
 
 import React, { useState, useEffect } from 'react';
-import { SessionTask, TaskItem } from '@/types';
 import { supabase } from '@/lib/supabaseClient';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
-import { Clock, Target, TrendingUp, Calendar, Award } from 'lucide-react';
+import { Clock, Target, TrendingUp, Award } from 'lucide-react';
 
 interface TaskAnalyticsProps {
   userId: string;
@@ -71,7 +70,7 @@ const TaskAnalytics: React.FC<TaskAnalyticsProps> = ({ userId, timeRange }) => {
         const taskMap = new Map<string, TaskTimeData>();
         
         sessionTasks?.forEach((st: unknown) => {
-          const stData = st as any;
+          const stData = st as { task_id: string; task: { name: string; time_goal?: number }; task_time?: number };
           const taskId = stData.task_id;
           const task = stData.task;
           
@@ -103,7 +102,7 @@ const TaskAnalytics: React.FC<TaskAnalyticsProps> = ({ userId, timeRange }) => {
         const dailyMap = new Map<string, DailyTimeData>();
         
         sessionTasks?.forEach((st: unknown) => {
-          const stData = st as any;
+          const stData = st as { session: { created_at: string }; task_time?: number };
           const date = new Date(stData.session.created_at).toDateString();
           
           if (!dailyMap.has(date)) {
@@ -128,8 +127,9 @@ const TaskAnalytics: React.FC<TaskAnalyticsProps> = ({ userId, timeRange }) => {
 
         setDailyData(processedDaily);
 
-      } catch (e: any) {
-        setError(e.message);
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+        setError(errorMessage);
       } finally {
         setIsLoading(false);
       }
@@ -308,7 +308,7 @@ const TaskAnalytics: React.FC<TaskAnalyticsProps> = ({ userId, timeRange }) => {
               </tr>
             </thead>
             <tbody>
-              {getTopPerformingTasks().map((task, index) => (
+              {getTopPerformingTasks().map((task) => (
                 <tr key={task.taskId} className="border-b border-gray-700/50">
                   <td className="py-3 text-white">{task.taskName}</td>
                   <td className="py-3 text-gray-300">{task.timeSpent} min</td>

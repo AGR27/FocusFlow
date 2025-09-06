@@ -8,7 +8,7 @@ import PomoTimer from '@/components/PomoTimer/PomoTimer'; // Import the PomoTime
 import TaskCard from '@/components/tasks/TaskCard'; // Import the TaskCard component
 import Modal from '@/components/UI/Modal'; // Import the Modal component for messages/confirmations
 import { supabase } from '@/lib/supabaseClient'; // Corrected import path to match user's existing files
-import { ClassItem, TaskItem } from "@/types";
+import { TaskItem } from "@/types";
 
 const Dashboard: React.FC = () => {
   const { user, loading: authLoading } = useAuth(); // Get user and loading state from AuthContext
@@ -34,7 +34,7 @@ const Dashboard: React.FC = () => {
       setError(null);
       try {
         // Fetch classes (even if not displayed, good to have consistent data fetching)
-        const { data: classData, error: classError } = await supabase
+        const { error: classError } = await supabase
           .from('classes')
           .select('*')
           .eq('user_id', user.id); // Filter by the current user's ID

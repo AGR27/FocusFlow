@@ -15,6 +15,7 @@ if (!CLIENT_ID || !CLIENT_SECRET || !REDIRECT_URI) {
 }
 
 export async function GET(_req: NextRequest) {
+  void _req;
   // Use the new, async createClient() function
   const supabase = await createClient();
 
@@ -255,7 +256,7 @@ export async function GET(_req: NextRequest) {
     console.error('Error fetching/importing Google Classroom tasks:', error);
     // Return specific status code if re-authentication is likely needed
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    const errorResponse = error as any;
+    const errorResponse = error as { response?: { status?: number } };
     if (errorMessage.includes('re-connect') || errorResponse?.response?.status === 401) {
         return NextResponse.json({ message: 'Google Classroom connection error. Please re-authenticate.' }, { status: 401 });
     }

@@ -91,7 +91,7 @@ const Dashboard: React.FC = () => {
 
           // Calculate total sessions and average session length
           setTotalSessions(sessionData.length);
-          const avgLength = sessionData.reduce((sum, session) => sum + session.session_minutes, 0) / sessionData.length;
+          // const avgLength = sessionData.reduce((sum, session) => sum + session.session_minutes, 0) / sessionData.length;
           // setAvgSessionLength(Math.round(avgLength));
         }
 
@@ -194,7 +194,7 @@ const Dashboard: React.FC = () => {
                     <Tooltip 
                       contentStyle={{ backgroundColor: '#1f2937', border: 'none', borderRadius: '8px' }}
                       labelStyle={{ color: '#9ca3af' }}
-                      formatter={(value, name) => [`${value} min`, 'Duration']}
+                      formatter={(value) => [`${value} min`, 'Duration']}
                     />
                     <Bar dataKey="minutes" fill="#3b82f6" radius={[4, 4, 0, 0]}>
                       <LabelList dataKey="minutes" position="top" style={{ fill: '#ffffff' }} />

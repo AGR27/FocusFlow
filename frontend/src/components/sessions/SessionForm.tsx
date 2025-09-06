@@ -28,7 +28,7 @@ const SessionForm: React.FC<SessionFormProps> = ({
   const [moodY, setMoodY] = useState(isEditing && sessionItem ? sessionItem.mood_y : 0);
   const [breakActivity, setBreakActivity] = useState(isEditing && sessionItem ? (sessionItem.break_activity || '') : '');
   const [breakSatisfaction, setBreakSatisfaction] = useState(isEditing && sessionItem ? (sessionItem.break_satisfaction || 5) : 5);
-  const [sessionTasks, setSessionTasks] = useState<SessionTask[]>([]);
+  const [, setSessionTasks] = useState<SessionTask[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
