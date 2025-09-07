@@ -1,4 +1,4 @@
-# FocusFlow 🍅
+# FocusFlow ⏰
 
 A comprehensive productivity assistant designed to help you stay focused and organized through the Pomodoro Technique, task management, and progress tracking.
 
@@ -6,7 +6,7 @@ A comprehensive productivity assistant designed to help you stay focused and org
 
 ## ✨ Features
 
-### 🍅 Pomodoro Timer
+### ⏰ Pomodoro Timer
 - **Customizable Focus Sessions**: Set custom focus and break durations
 - **Session Management**: Track total session time with automatic focus/break cycles
 - **Global Timer Widget**: Minimizable floating timer that stays accessible across all pages
