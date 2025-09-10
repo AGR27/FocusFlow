@@ -3,12 +3,14 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import ProductivitySlider from "@/components/PomoTimer/ProductivitySlider"; 
-import MoodGrid from "@/components/PomoTimer/MoodGrid"; 
+import MoodGrid from "@/components/PomoTimer/MoodGrid";
+import { useTimer } from "@/contexts/TimerContext"; 
 
 // Define the possible modes for the timer state machine
 type Mode = "setup" | "focus" | "focusQuestions" | "break" | "breakQuestions" | "sessionEnd";
 
 export default function PomoTimer() {
+  const { timerState, startTimer, pauseTimer, resetTimer, setFocusTime, setBreakTime } = useTimer();
   const [userId, setUserId] = useState<string | null>(null);
   // const [isSupabaseLoading, setIsSupabaseLoading] = useState<boolean>(true);
   // const [supabaseError, setSupabaseError] = useState<string | null>(null);
@@ -25,8 +27,9 @@ export default function PomoTimer() {
 
   // --- Timer Operational State ---
   const [mode, setMode] = useState<Mode>("setup"); // Current phase of the Pomodoro cycle
-  const [timeLeft, setTimeLeft] = useState(0); // Time remaining in current phase, in seconds
-  const [isPaused, setIsPaused] = useState(false); // Whether the timer is paused
+  // Use global timer state instead of local state
+  const timeLeft = timerState.timeLeft;
+  const isPaused = timerState.isPaused;
 
   // --- Feedback State (for MoodGrid and ProductivitySlider) ---
   const [mood, setMood] = useState<{ x: number; y: number; color: string } | null>(null);
@@ -129,40 +132,36 @@ export default function PomoTimer() {
     }
   }, [sessionMinutes, mode]); 
 
-  // --- Main Timer Logic useEffect ---
+  // --- Sync mode with global timer state ---
   useEffect(() => {
-    // Clear any existing interval to prevent multiple timers running
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
-
-    // Only run timer logic if in focus or break mode AND not paused
-    if ((mode === "focus" || mode === "break") && !isPaused) {
-      // If time runs out, transition to the next phase
-      if (timeLeft <= 0) {
-        if (mode === "focus") {
-          setMode("focusQuestions"); // Session ended, ask questions
-        } else { // mode === "break"
-          setMode("breakQuestions"); // Break ended, ask questions
-        }
-        // No new interval set here; the timer logic is handled by the mode transition
-        return;
+    if (timerState.isRunning) {
+      if (timerState.currentPhase === 'focus') {
+        setMode("focus");
+      } else if (timerState.currentPhase === 'break') {
+        setMode("break");
+      } else if (timerState.currentPhase === 'longBreak') {
+        setMode("break");
       }
-
-      // If timeLeft is greater than 0, set up the countdown interval
-      intervalRef.current = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
-      }, 1000);
     }
+  }, [timerState.isRunning, timerState.currentPhase]);
 
-    // Cleanup function: Clear the interval when the component unmounts,
-    // or when dependencies change (stopping the previous interval before a new one might start)
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
+  // --- Listen for timer completion events ---
+  useEffect(() => {
+    const handleTimerCompleted = (event: CustomEvent) => {
+      const { phase } = event.detail;
+      if (phase === 'focus') {
+        setMode("focusQuestions");
+      } else if (phase === 'break' || phase === 'longBreak') {
+        setMode("breakQuestions");
       }
     };
-  }, [timeLeft, mode, isPaused, breakDurationSeconds]); // Dependencies: timeLeft, mode, and isPaused
+
+    window.addEventListener('timerCompleted', handleTimerCompleted as EventListener);
+    
+    return () => {
+      window.removeEventListener('timerCompleted', handleTimerCompleted as EventListener);
+    };
+  }, []);
 
   useEffect(() => {
   if (mode === "setup") {
@@ -273,29 +272,28 @@ export default function PomoTimer() {
       alert("Please enter a valid session duration >= than 0.");
       return;
     }
-    setTimeLeft(focusDurationSeconds); // Initialize timeLeft with the derived session duration
+    // Update global timer context
+    setFocusTime(focusMinutes);
+    setBreakTime(Math.floor(breakDurationSeconds / 60));
+    startTimer(focusDurationSeconds);
+    
     setMode("focus"); // Start the focus phase
-    setIsPaused(false); // Ensure not paused when starting
   };
 
   // Pauses the current countdown
   const handlePause = () => {
-    setIsPaused(true);
+    pauseTimer(); // Update global timer
   };
 
   // Resumes the countdown from where it left off
   const handleResume = () => {
-    setIsPaused(false);
+    pauseTimer(); // Toggle pause in global timer (it acts as resume if paused)
   };
 
   // Resets the timer to its initial setup state
   const handleReset = () => {
-    if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-    }
+    resetTimer(); // Reset global timer
     setMode("setup");
-    setIsPaused(false);
-    setTimeLeft(0); // Clear timeLeft, it will be reset by duration input in setup phase
     setMood(null); // Reset feedback
     setProductivity(5); // Reset feedback
     setSessionMinutes(30); // Reset session minutes to default
@@ -308,9 +306,9 @@ export default function PomoTimer() {
   // Handles submission after focus questions, transitions to break
   const handleSubmitFocusFeedbackAndStartBreak = () => {
     console.log("Focus Feedback:", { mood, productivity });
-    setTimeLeft(breakDurationSeconds); // Initialize timeLeft for break
+    // Start break timer in global context
+    startTimer(breakDurationSeconds);
     setMode("break"); // Start the break phase
-    setIsPaused(false); // Ensure not paused when starting break
   };
 
   // Handles submission after break questions, transitions to session end
@@ -319,15 +317,14 @@ export default function PomoTimer() {
     // All feedback data is ready to be saved.
     console.log("Break Feedback Submitted:", { breakActivity, breakSatisfaction });
     await saveSession(); // NEW: Call the save function here!
+    resetTimer(); // Reset global timer when session ends
     setMode("sessionEnd");
-    setIsPaused(false);
 };
 
   // Handles starting a new session from sessionEnd
   const handleNewSession = () => {
+    resetTimer(); // Reset global timer for new session
     setMode("setup");
-    setIsPaused(false);
-    setTimeLeft(0); // TimeLeft will be reset by duration input in setup
     setMood(null);
     setProductivity(5);
     setSessionMinutes(30); // Reset session minutes to default

@@ -5,6 +5,9 @@ import { useAuth } from '@/components/AuthContext';
 import { supabase } from '@/lib/supabaseClient';
 import { SessionItem } from '@/types';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LabelList } from 'recharts';
+import SessionForm from '@/components/sessions/SessionForm';
+import Modal from '@/components/UI/Modal';
+import { Plus } from 'lucide-react';
 
 // Data format for the bar chart
 interface DailyData {
@@ -16,34 +19,35 @@ interface DailyData {
 type ViewMode = 'weekly' | 'all';
 
 // Component to display a single session card
-const SessionCard: React.FC<{ session: SessionItem }> = ({ session }) => (
+const SessionCard: React.FC<{ session: SessionItem; onEdit: (session: SessionItem) => void }> = ({ session, onEdit }) => (
   <div className="bg-gray-800 rounded-lg p-4 border border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center">
     <div className="flex-1">
       <p className="text-lg font-semibold text-white">
         Session on {new Date(session.created_at || '').toLocaleDateString()}
       </p>
-      {/* {session.task && (
-        <p className="text-sm text-gray-400 mt-1">
-          Task: <span className="text-blue-300 font-medium">{session.task}</span>
-        </p>
-      )}
-      {session.class && (
-        <p className="text-sm text-gray-400">
-          Class: <span className="text-purple-300 font-medium">{session.class}</span>
-        </p>
-      )} */}
-    </div>
-    <div className="mt-2 sm:mt-0 sm:ml-4 text-right">
-      <p className="text-sm text-gray-400">
-        Duration: <span className="text-white font-medium">{session.session_minutes} min</span>
+      <p className="text-sm text-gray-400 mt-1">
+        Focus: {session.focus_minutes} min | Total: {session.session_minutes} min
       </p>
-      <span
-        className={`px-3 py-1 rounded-full text-xs font-semibold mt-2 inline-block ${
-          session.prod_level >= 7 ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
-        }`}
+    </div>
+    <div className="mt-2 sm:mt-0 sm:ml-4 text-right flex items-center gap-2">
+      <div>
+        <p className="text-sm text-gray-400">
+          Duration: <span className="text-white font-medium">{session.session_minutes} min</span>
+        </p>
+        <span
+          className={`px-3 py-1 rounded-full text-xs font-semibold mt-2 inline-block ${
+            session.prod_level >= 7 ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+          }`}
+        >
+          {session.prod_level >= 7 ? 'Productive' : 'Distracted'}
+        </span>
+      </div>
+      <button
+        onClick={() => onEdit(session)}
+        className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors"
       >
-        {session.prod_level >= 7 ? 'Productive' : 'Distracted'}
-      </span>
+        Edit
+      </button>
     </div>
   </div>
 );
@@ -54,6 +58,8 @@ const Sessions: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('weekly');
+  const [showSessionForm, setShowSessionForm] = useState(false);
+  const [editingSession, setEditingSession] = useState<SessionItem | null>(null);
 
   // State for calculated analytics
   const [totalWeeklyMinutes, setTotalWeeklyMinutes] = useState(0);
@@ -160,27 +166,117 @@ const Sessions: React.FC = () => {
     fetchAndProcessSessions();
   }, [user, authLoading]);
 
+  const handleSaveSession = async (sessionData: Partial<SessionItem>) => {
+    if (!user) return;
+
+    try {
+      if (editingSession) {
+        // Update existing session
+        const { error } = await supabase
+          .from('sessions')
+          .update({
+            session_minutes: sessionData.session_minutes,
+            focus_minutes: sessionData.focus_minutes,
+            prod_level: sessionData.prod_level,
+            mood_x: sessionData.mood_x,
+            mood_y: sessionData.mood_y,
+            break_activity: sessionData.break_activity,
+            break_satisfaction: sessionData.break_satisfaction,
+          })
+          .eq('id', editingSession.id)
+          .eq('user_id', user.id);
+
+        if (error) throw error;
+      } else {
+        // Create new session
+        const { error } = await supabase
+          .from('sessions')
+          .insert({
+            user_id: user.id,
+            session_minutes: sessionData.session_minutes,
+            focus_minutes: sessionData.focus_minutes,
+            prod_level: sessionData.prod_level,
+            mood_x: sessionData.mood_x,
+            mood_y: sessionData.mood_y,
+            break_activity: sessionData.break_activity,
+            break_satisfaction: sessionData.break_satisfaction,
+          });
+
+        if (error) throw error;
+      }
+
+      // Refresh sessions list
+      const { data: refreshedSessions, error: sessionError } = await supabase
+        .from('sessions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (sessionError) throw sessionError;
+      setSessions(refreshedSessions || []);
+
+      // Close form
+      setShowSessionForm(false);
+      setEditingSession(null);
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+      setError(errorMessage);
+    }
+  };
+
+  const handleEditSession = (session: SessionItem) => {
+    setEditingSession(session);
+    setShowSessionForm(true);
+  };
+
+  const handleCancelSessionForm = () => {
+    setShowSessionForm(false);
+    setEditingSession(null);
+  };
+
   return (
     <div className="flex flex-col gap-8 p-8 min-h-screen bg-gray-900 text-white font-sans">
+      {/* Session Form Modal */}
+      {showSessionForm && (
+        <Modal onClose={handleCancelSessionForm}>
+          <SessionForm
+            onSave={handleSaveSession}
+            onCancel={handleCancelSessionForm}
+            isEditing={!!editingSession}
+            sessionItem={editingSession}
+            userId={user?.id || ''}
+          />
+        </Modal>
+      )}
+
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
         <h2 className="text-3xl font-extrabold text-blue-400 mb-4 sm:mb-0">Session History</h2>
-        <div className="flex gap-2 p-1 bg-gray-800 rounded-full border border-gray-700">
+        <div className="flex gap-4 items-center">
           <button
-            onClick={() => setViewMode('weekly')}
-            className={`px-4 py-2 rounded-full font-medium transition-colors ${
-              viewMode === 'weekly' ? 'bg-blue-600 text-white shadow-md' : 'bg-transparent text-gray-300 hover:bg-gray-700'
-            }`}
+            onClick={() => setShowSessionForm(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors shadow-md"
           >
-            Weekly Summary
+            <Plus size={20} />
+            Add New Session
           </button>
-          <button
-            onClick={() => setViewMode('all')}
-            className={`px-4 py-2 rounded-full font-medium transition-colors ${
-              viewMode === 'all' ? 'bg-blue-600 text-white shadow-md' : 'bg-transparent text-gray-300 hover:bg-gray-700'
-            }`}
-          >
-            All Sessions
-          </button>
+          <div className="flex gap-2 p-1 bg-gray-800 rounded-full border border-gray-700">
+            <button
+              onClick={() => setViewMode('weekly')}
+              className={`px-4 py-2 rounded-full font-medium transition-colors ${
+                viewMode === 'weekly' ? 'bg-blue-600 text-white shadow-md' : 'bg-transparent text-gray-300 hover:bg-gray-700'
+              }`}
+            >
+              Weekly Summary
+            </button>
+            <button
+              onClick={() => setViewMode('all')}
+              className={`px-4 py-2 rounded-full font-medium transition-colors ${
+                viewMode === 'all' ? 'bg-blue-600 text-white shadow-md' : 'bg-transparent text-gray-300 hover:bg-gray-700'
+              }`}
+            >
+              All Sessions
+            </button>
+          </div>
         </div>
       </div>
 
@@ -271,7 +367,7 @@ const Sessions: React.FC = () => {
                 <h3 className="text-2xl font-bold text-white mb-4">Complete Session Log</h3>
                 <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
                   {sessions.map((session) => (
-                    <SessionCard key={session.id} session={session} />
+                    <SessionCard key={session.id} session={session} onEdit={handleEditSession} />
                   ))}
                 </div>
               </div>

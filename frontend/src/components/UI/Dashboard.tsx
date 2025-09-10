@@ -8,15 +8,21 @@ import PomoTimer from '@/components/PomoTimer/PomoTimer'; // Import the PomoTime
 import TaskCard from '@/components/tasks/TaskCard'; // Import the TaskCard component
 import Modal from '@/components/UI/Modal'; // Import the Modal component for messages/confirmations
 import { supabase } from '@/lib/supabaseClient'; // Corrected import path to match user's existing files
-import { TaskItem } from "@/types";
+import { TaskItem, ClassItem } from "@/types";
+import { useTimer } from '@/contexts/TimerContext';
+import AddTaskForm from '@/components/tasks/AddTaskForm';
+import { Clock } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
   const { user, loading: authLoading } = useAuth(); // Get user and loading state from AuthContext
+  const { timerState } = useTimer();
   const [tasks, setTasks] = useState<TaskItem[]>([]);
-  // const [classes, setClasses] = useState<ClassItem[]>([]); // Added for potential future use or context
+  const [classes, setClasses] = useState<ClassItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentModalMessage, setCurrentModalMessage] = useState<string | null>(null); // For custom modals
+  const [showAddTaskForm, setShowAddTaskForm] = useState(false);
+  const [editingTask, setEditingTask] = useState<TaskItem | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -33,14 +39,14 @@ const Dashboard: React.FC = () => {
       setIsLoading(true);
       setError(null);
       try {
-        // Fetch classes (even if not displayed, good to have consistent data fetching)
-        const { error: classError } = await supabase
+        // Fetch classes for the task form
+        const { data: classData, error: classError } = await supabase
           .from('classes')
           .select('*')
           .eq('user_id', user.id); // Filter by the current user's ID
 
         if (classError) throw classError;
-        // setClasses(classData || []); // Store classes if needed for future features
+        setClasses(classData || []);
 
         // Fetch tasks associated with the current user, ordered by due date_time
         const { data: taskData, error: taskError } = await supabase
@@ -63,15 +69,75 @@ const Dashboard: React.FC = () => {
     fetchData(); // Call fetchData when user or authLoading changes
   }, [user, authLoading]);
 
-  // Placeholder for task/class actions on the dashboard
-  // These will just log for now, as full edit/delete modals are on the Tasks page
+  // Task handling functions
   const handleEditTask = (task: TaskItem) => {
-    setCurrentModalMessage(`Editing task "${task.name}" is handled on the "Tasks" page.`);
-    console.log('Edit task from dashboard:', task);
+    setEditingTask(task);
+    setShowAddTaskForm(true);
   };
+  
   const handleDeleteTask = (taskId: string) => {
     setCurrentModalMessage(`Deleting tasks is handled on the "Tasks" page.`);
     console.log('Delete task from dashboard:', taskId);
+  };
+
+  const handleSaveTask = async (taskData: Omit<TaskItem, 'user_id'>) => {
+    if (!user) return;
+
+    try {
+      if (editingTask) {
+        // Update existing task
+        const { error } = await supabase
+          .from('tasks')
+          .update({
+            name: taskData.name,
+            class_id: taskData.class_id,
+            due_date_time: taskData.due_date_time,
+            priority: taskData.priority,
+            type: taskData.type,
+          })
+          .eq('id', editingTask.id)
+          .eq('user_id', user.id);
+
+        if (error) throw error;
+      } else {
+        // Create new task
+        const { error } = await supabase
+          .from('tasks')
+          .insert({
+            user_id: user.id,
+            name: taskData.name,
+            class_id: taskData.class_id,
+            due_date_time: taskData.due_date_time,
+            priority: taskData.priority,
+            type: taskData.type,
+          });
+
+        if (error) throw error;
+      }
+
+      // Refresh tasks list
+      const { data: refreshedTasks, error: taskError } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('due_date_time', { ascending: true });
+
+      if (taskError) throw taskError;
+      setTasks(refreshedTasks || []);
+
+      // Close form
+      setShowAddTaskForm(false);
+      setEditingTask(null);
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+      setError(errorMessage);
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   // Filter tasks to show only a few upcoming ones for the dashboard
@@ -99,41 +165,33 @@ const Dashboard: React.FC = () => {
         </Modal>
       )}
 
+
       {/* Left Column: Welcome, Timer & Quick Actions */}
       <div className="md:w-1/2 space-y-8">
         <h2 className="text-3xl font-extrabold text-blue-400 mb-4">
           Welcome back, {user?.user_metadata?.name || user?.user_metadata?.name || (user?.email ? user.email.split('@')[0] : 'User')}!
         </h2>
         
-        {/* Pomodoro Timer Card */}
-        <div className="bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-700">
-            <h3 className="text-2xl font-bold mb-4 text-white">Your Focus Session</h3>
-            {/* Embedding the Pomodoro Timer component directly */}
-            <PomoTimer />
+        {/* Pomodoro Timer - Exact Copy */}
+        <div className="bg-gray-800 rounded-xl shadow-lg border border-gray-700 overflow-hidden">
+          <PomoTimer />
         </div>
 
-        {/* Quick Actions Card */}
-        <div className="bg-gray-800 rounded-xl shadow-lg p-6 space-y-4 border border-gray-700">
-          <h3 className="text-2xl font-bold text-white">Quick Actions</h3>
-          <Link href="/tasks">
-            <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg transition-colors transform hover:scale-105 shadow-md">
-              Add New Task
-            </button>
-          </Link>
-          <Link href="/tasks">
-            <button className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-colors transform hover:scale-105 shadow-md">
-              View All Tasks
-            </button>
-          </Link>
-          {/* Add more quick actions as your app grows, e.g., "View Calendar" */}
-        </div>
       </div>
 
       {/* Right Column: Upcoming Tasks & Recent Activity Placeholder */}
       <div className="md:w-1/2 space-y-8">
         {/* Upcoming Tasks Card */}
         <div className="bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-700">
-          <h3 className="text-2xl font-bold text-white mb-4">Upcoming Tasks</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-2xl font-bold text-white">Upcoming Tasks</h3>
+              <button
+                onClick={() => setShowAddTaskForm(true)}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors transform hover:scale-105 shadow-md"
+              >
+                Add New Task
+              </button>
+            </div>
           {isLoading ? (
             <p className="text-gray-400 text-lg">Loading tasks...</p>
           ) : error ? (
@@ -151,7 +209,14 @@ const Dashboard: React.FC = () => {
               ))}
             </div>
           ) : (
-            <p className="text-gray-400 text-lg">No upcoming tasks. Time to add some!</p>
+            <div className="text-center">
+              <p className="text-gray-400 text-lg mb-4">No upcoming tasks. Time to add some!</p>
+              <Link href="/tasks">
+                <button className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors transform hover:scale-105 shadow-md">
+                  Create Your First Task
+                </button>
+              </Link>
+            </div>
           )}
         </div>
 
@@ -164,6 +229,19 @@ const Dashboard: React.FC = () => {
           {/* This area is reserved for future calendar integration or productivity graphs */}
         </div>
       </div>
+
+      {/* Add Task Modal */}
+      {showAddTaskForm && (
+        <Modal onClose={() => { setShowAddTaskForm(false); setEditingTask(null); }}>
+          <AddTaskForm
+            onSave={handleSaveTask}
+            onCancel={() => { setShowAddTaskForm(false); setEditingTask(null); }}
+            classes={classes}
+            isEditing={!!editingTask}
+            taskItem={editingTask}
+          />
+        </Modal>
+      )}
     </div>
   );
 };

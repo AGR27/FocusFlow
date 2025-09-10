@@ -67,17 +67,44 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
   const [longBreakTime, setLongBreakTime] = useState(15);
   const [cycles, setCycles] = useState(4);
 
-  // Load settings from localStorage on mount
+  // Load settings and timer state from localStorage on mount
   useEffect(() => {
     const savedFocusTime = localStorage.getItem('pomodoro-focus-time');
     const savedBreakTime = localStorage.getItem('pomodoro-break-time');
     const savedLongBreakTime = localStorage.getItem('pomodoro-long-break-time');
     const savedCycles = localStorage.getItem('pomodoro-cycles');
+    
+    // Load timer state from localStorage
+    const savedTimerState = localStorage.getItem('pomodoro-timer-state');
+    const savedSessionData = localStorage.getItem('pomodoro-session-data');
 
     if (savedFocusTime) setFocusTime(parseInt(savedFocusTime));
     if (savedBreakTime) setBreakTime(parseInt(savedBreakTime));
     if (savedLongBreakTime) setLongBreakTime(parseInt(savedLongBreakTime));
     if (savedCycles) setCycles(parseInt(savedCycles));
+
+    // Restore timer state if it exists
+    if (savedTimerState) {
+      try {
+        const parsedState = JSON.parse(savedTimerState);
+        // Only restore if the timer was running when saved
+        if (parsedState.isRunning) {
+          setTimerState(parsedState);
+        }
+      } catch (e) {
+        console.error('Error parsing saved timer state:', e);
+      }
+    }
+
+    // Restore session data if it exists
+    if (savedSessionData) {
+      try {
+        const parsedSession = JSON.parse(savedSessionData);
+        setCurrentSession(parsedSession);
+      } catch (e) {
+        console.error('Error parsing saved session data:', e);
+      }
+    }
   }, []);
 
   // Save settings to localStorage when they change
@@ -87,6 +114,20 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('pomodoro-long-break-time', longBreakTime.toString());
     localStorage.setItem('pomodoro-cycles', cycles.toString());
   }, [focusTime, breakTime, longBreakTime, cycles]);
+
+  // Save timer state to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('pomodoro-timer-state', JSON.stringify(timerState));
+  }, [timerState]);
+
+  // Save session data to localStorage whenever it changes
+  useEffect(() => {
+    if (currentSession) {
+      localStorage.setItem('pomodoro-session-data', JSON.stringify(currentSession));
+    } else {
+      localStorage.removeItem('pomodoro-session-data');
+    }
+  }, [currentSession]);
 
   // Timer logic
   useEffect(() => {
@@ -123,6 +164,19 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
     }
   }, [timerState.timeLeft, timerState.isRunning]);
 
+  // Handle automatic redirection when timer phases end
+  useEffect(() => {
+    if (timerState.timeLeft === 0 && !timerState.isRunning) {
+      // Only redirect if we're not already on the timer page
+      if (typeof window !== 'undefined' && !window.location.pathname.includes('/timer')) {
+        // Small delay to ensure the timer state is properly updated
+        setTimeout(() => {
+          window.location.href = '/timer';
+        }, 100);
+      }
+    }
+  }, [timerState.timeLeft, timerState.isRunning]);
+
   // Initialize session data when timer starts
   useEffect(() => {
     if (timerState.isRunning && !currentSession) {
@@ -140,10 +194,19 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
   }, [timerState.isRunning, currentSession, timerState.totalTime, timerState.currentPhase, user?.id]);
 
   const handleTimerComplete = () => {
-    setTimerState(prev => ({
-      ...prev,
-      isRunning: false,
-    }));
+    setTimerState(prev => {
+      // Trigger a custom event to notify components that timer completed
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('timerCompleted', { 
+          detail: { phase: prev.currentPhase } 
+        }));
+      }
+      
+      return {
+        ...prev,
+        isRunning: false,
+      };
+    });
   };
 
   const startTimer = (duration?: number) => {
@@ -175,6 +238,9 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
     });
     setCurrentSession(null);
     setSessionTasks([]);
+    // Clear saved state from localStorage
+    localStorage.removeItem('pomodoro-timer-state');
+    localStorage.removeItem('pomodoro-session-data');
   };
 
   const skipPhase = () => {

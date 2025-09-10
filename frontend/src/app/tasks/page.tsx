@@ -84,33 +84,42 @@ export default function Tasks(){
   const [importError, setImportError] = useState<string | null>(null);
   const [importSuccess, setImportSuccess] = useState<string | null>(null);
 
-  const handleImportGoogleClassroomTasks = async () => {
+  const handleGoogleClassroomConnectAndImport = async () => {
     setIsImporting(true);
     setImportError(null);
     setImportSuccess(null);
+    
     try {
-      // Step 1: Call your backend API route to initiate the import.
-      // The backend will fetch from Google Classroom and upsert into Supabase.
+      // try to import tasks directly
       const response = await fetch('/api/google-classroom/tasks'); 
-      const data = await response.json(); // Read the JSON response from your API
+      const data = await response.json();
 
       if (!response.ok) {
-        // If the backend indicates an error (e.g., 401 for auth required)
+        // If auth is required, initiate
         if (response.status === 401 && data.message.includes('re-connect')) {
-          setCurrentModalMessage('Google Classroom authentication required or expired. Please authorize.');
-          // Optionally, you could automatically redirect to initiateGoogleClassroomAuth() here
-          // initiateGoogleClassroomAuth(); 
+          setCurrentModalMessage('Connecting to Google Classroom... Please complete the authorization in the new window.');
+          // Initiate Google Classroom auth
+          initiateGoogleClassroomAuth();
+          return;
         }
-        throw new Error(data.message || 'Failed to fetch Google Classroom tasks from API.');
+        throw new Error(data.message || 'Failed to connect to Google Classroom.');
       }
 
+      // import was successful
       setImportSuccess(data.message || `Successfully imported ${data.importedCount || 0} tasks from Google Classroom.`);
-      fetchData(); // Refresh local data to show newly imported tasks
+      fetchData();
 
     } catch (e: unknown) {
-      console.error("Import failed:", e);
+      console.error("Google Classroom connection/import failed:", e);
       const errorMessage = e instanceof Error ? e.message : 'Unknown error';
-      setImportError(`Failed to import Google Classroom tasks: ${errorMessage}`);
+      
+      // If auth error initiate auth
+      if (errorMessage.includes('authentication') || errorMessage.includes('re-connect')) {
+        setCurrentModalMessage('Connecting to Google Classroom... Please complete the authorization in the new window.');
+        initiateGoogleClassroomAuth();
+      } else {
+        setImportError(`Failed to connect to Google Classroom: ${errorMessage}`);
+      }
     } finally {
       setIsImporting(false);
     }
@@ -179,10 +188,6 @@ export default function Tasks(){
     setClasses(validClassData);
     setTasks(validTaskData);
     
-    // --- ADD THIS LOGGING ---
-    console.log("Fetched Classes:", classData);
-    console.log("Fetched Tasks:", taskData);
-    // --- END LOGGING ---
     } catch (e: unknown) {
       const errorMessage = e instanceof Error ? e.message : 'Unknown error';
       setError(errorMessage);
@@ -459,21 +464,19 @@ export default function Tasks(){
             <h2 className="text-3xl font-bold mb-6 text-teal-400">Import Tasks</h2>
             <div className="bg-gray-800 rounded-lg shadow-lg p-6 flex flex-col sm:flex-row items-center justify-center gap-4">
               <button
-                onClick={initiateGoogleClassroomAuth}
+                onClick={handleGoogleClassroomConnectAndImport}
                 disabled={isImporting}
-                className="px-6 py-3 bg-blue-700 text-white font-bold rounded-lg shadow-lg hover:bg-blue-600 transition-colors transform hover:scale-105 disabled:opacity-50"
+                className="px-8 py-4 bg-blue-600 text-white font-bold rounded-lg shadow-lg hover:bg-blue-500 transition-colors transform hover:scale-105 disabled:opacity-50 flex items-center gap-2"
               >
-                Connect Google Classroom
+                {isImporting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Connecting & Importing...
+                  </>
+                ) : (
+                  'Connect & Import from Google Classroom'
+                )}
               </button>
-              <button
-                onClick={handleImportGoogleClassroomTasks}
-                disabled={isImporting}
-                className="px-6 py-3 bg-blue-500 text-white font-bold rounded-lg shadow-lg hover:bg-blue-400 transition-colors transform hover:scale-105 disabled:opacity-50"
-              >
-                {isImporting ? 'Importing...' : 'Import from Google Classroom'}
-              </button>
-
-              <span className="text-gray-400 hidden sm:block">|</span> {/* Separator */}
 {/* 
               <button
                 onClick={initiateCanvasAuth}
@@ -493,6 +496,7 @@ export default function Tasks(){
             {importError && <p className="text-center text-red-400 mt-4">{importError}</p>}
             {importSuccess && <p className="text-center text-green-400 mt-4">{importSuccess}</p>}
           </section>
+
 
           {/* Conditional Rendering for Home or Class View */}
           {!isLoading && !error && (
